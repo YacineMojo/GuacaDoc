@@ -37,15 +37,15 @@ export function DropZone() {
           setDragging(false);
           void handle(e.dataTransfer.files[0]);
         }}
-        className={`flex flex-wrap items-center gap-3 border-2 border-dashed px-5 py-5 transition-colors ${
-          dragging ? "border-marker bg-marker/5" : "border-line bg-ink-850"
+        className={`flex flex-wrap items-center gap-3 rounded-[5px] border-2 border-dashed px-5 py-5 transition-colors ${
+          dragging ? "border-guac bg-guac-wash" : "border-line bg-white"
         }`}
       >
         <Button tone="primary" onClick={() => inputRef.current?.click()} disabled={busy}>
           {busy ? "Reading…" : "Choose a file"}
         </Button>
         <Button onClick={openDemo} disabled={busy}>
-          Open the sample contract
+          Try the sample contract
         </Button>
         <span className="mono text-[0.6875rem] text-text-faint">
           or drop one here · {ACCEPTED_EXTENSIONS.join(" ")}
@@ -61,7 +61,7 @@ export function DropZone() {
       </div>
 
       {error && (
-        <p className="mono mt-3 border border-stamp-dim bg-stamp/10 px-4 py-3 text-xs leading-relaxed text-stamp">
+        <p className="mono mt-3 rounded-[4px] border border-stone-soft bg-stone-soft/30 px-4 py-3 text-xs leading-relaxed text-stone">
           {error}
         </p>
       )}

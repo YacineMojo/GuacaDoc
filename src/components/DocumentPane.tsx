@@ -109,13 +109,13 @@ export function DocumentPane({ text, entities }: { text: string; entities: Entit
             className="absolute z-20 -translate-x-1/2 -translate-y-full pb-2"
             style={{ left: selection.x, top: selection.y }}
           >
-            <div className="panel flex items-center gap-1 border-line px-2 py-1.5 shadow-lg">
+            <div className="panel flex items-center gap-1 px-2 py-1.5 shadow-lg">
               <span className="label mr-1">Mark as</span>
               {MANUAL_TYPES.map((type) => (
                 <button
                   key={type}
                   onClick={() => add(type)}
-                  className="mono border border-line bg-ink-700 px-1.5 py-0.5 text-[0.6875rem] text-text hover:bg-ink-600"
+                  className="mono rounded-[3px] border border-line bg-white px-1.5 py-0.5 text-[0.6875rem] text-text hover:bg-guac-wash"
                 >
                   {type}
                 </button>
@@ -126,7 +126,7 @@ export function DocumentPane({ text, entities }: { text: string; entities: Entit
       </div>
 
       {notice && (
-        <p className="mono absolute right-3 bottom-3 border border-line bg-ink-800 px-3 py-1.5 text-[0.6875rem] text-text-dim">
+        <p className="mono absolute right-3 bottom-3 rounded-[4px] border border-line bg-white px-3 py-1.5 text-[0.6875rem] text-text-dim shadow-sm">
           {notice}
         </p>
       )}

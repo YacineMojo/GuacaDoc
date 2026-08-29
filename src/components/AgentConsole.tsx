@@ -105,7 +105,7 @@ export function AgentConsole() {
               setArgs({});
               setResponse("");
             }}
-            className="mono min-w-0 flex-1 border border-line bg-ink-900 px-2.5 py-1.5 text-xs text-text focus:border-marker focus:outline-none"
+            className="mono min-w-0 flex-1 rounded-[4px] border border-line bg-white px-2.5 py-1.5 text-xs text-text focus:border-guac focus:outline-none"
           >
             {tools.map((t) => (
               <option key={t.name} value={t.name}>
@@ -129,7 +129,7 @@ export function AgentConsole() {
               if (e.key === "Enter") runSelected();
             }}
             placeholder={`${key} — ${schema.description ?? schema.type ?? ""}`}
-            className="mono w-full border border-line bg-ink-900 px-2.5 py-1.5 text-xs text-text placeholder:text-text-faint focus:border-marker focus:outline-none"
+            className="mono w-full rounded-[4px] border border-line bg-white px-2.5 py-1.5 text-xs text-text placeholder:text-text-faint focus:border-guac focus:outline-none"
           />
         ))}
 
@@ -137,7 +137,7 @@ export function AgentConsole() {
           <Button size="sm" onClick={runScenario} disabled={running}>
             Sample investigation
           </Button>
-          <Button size="sm" tone="danger" onClick={spendBudget} disabled={running}>
+          <Button size="sm" tone="stone" onClick={spendBudget} disabled={running}>
             Spend the budget
           </Button>
           <span className="label ml-auto">
@@ -146,7 +146,7 @@ export function AgentConsole() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto bg-ink-900 p-3">
+      <div className="min-h-0 flex-1 overflow-auto bg-guac-wash p-3">
         {response ? (
           <pre className="mono text-[0.6875rem] leading-relaxed whitespace-pre-wrap text-text-dim">
             {response}

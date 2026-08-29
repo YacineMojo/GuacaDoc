@@ -1,15 +1,17 @@
-# Redaction Gateway
+# GuacaDoc
 
-> **Naming note for the author:** `Redaction Gateway` is a placeholder. Replace
-> it in `src/lib/branding.ts` and in this file before submitting.
-
-**Let an agent read your document without sending it.**
+**Give your AI agent the taste, not the recipe.**
 
 A file is loaded into a browser tab and never leaves it. An AI agent reaches it
 only through WebMCP tools, and every answer those tools return passes through a
 policy layer first: identifying values are replaced by stable tokens, a byte
 budget caps how much can ever be disclosed, and a live strip shows exactly what
 went out.
+
+The name is the model. An avocado has flesh and a stone. Guacamole keeps the
+flesh, loses the stone, and cannot be turned back into an avocado. That is what
+an agent receives here: the substance of the document, without the parts that
+identify anyone, in a form that does not reconstruct.
 
 Live app: _add your URL here_
 
@@ -32,21 +34,23 @@ type. It is a generic disclosure-control surface for agents.
 
 ## Try it in 60 seconds
 
-1. Open the live URL and click **Open the sample contract** (a fictional
-   services agreement, written for this project).
-2. **Redaction** tab: the document on the left, the agent's view of it on the
-   right, the detected entities on the far right. Click any highlighted value
-   to switch it between *shown*, *tokenized* and *blocked*, and watch the right
-   pane change. Select any text in the document to mark something detection
-   missed.
-3. **Agent** tab: press **Sample investigation**. Four tool calls run, the tape
-   across the top prints what left the tab, and the audit trail records each
-   call with its byte cost.
+1. Open the live URL, press **Open GuacaDoc**, then **Try the sample contract**
+   (a fictional services agreement, written for this project). No account, no
+   sign-in, nothing uploaded.
+2. **Document** tab: your file on the left, the agent's view of it on the
+   right, everything that was found on the far right. Click any mark to switch
+   it between *shown*, *token* and *withheld*, and watch the right pane change.
+   Select any text to mark something detection missed.
+3. **Agent** tab: press **Sample investigation**. Four tool calls run, the
+   strip across the top prints what left the tab, and the record logs each call
+   with its byte cost. The meter is a halved avocado: the flesh fills as the
+   budget is spent, and the stone at its centre carries the count of values
+   that are never served.
 4. Press **Spend the budget**. The agent keeps reading sections until the
-   policy refuses one. The refusal prints in red on the tape and in the log,
-   and the tool returns a structured `budget_exceeded` answer rather than an
-   exception.
-5. Paste an answer containing tokens into **Decode an answer** to put the real
+   policy refuses one. The refusal is printed on the strip and in the record in
+   the brown of the stone, and the tool returns a structured `budget_exceeded`
+   answer rather than an exception.
+5. Paste an answer containing tokens into **Read an answer** to put the real
    names back, locally.
 
 Everything above also happens when a real browser agent drives the page. The
@@ -232,8 +236,11 @@ headers already configured.
 ## Stack
 
 Next.js 16 in static export mode, React 19, Tailwind v4. `pdf.js` and `mammoth`
-for client-side extraction, both bundled. Fonts are self-hosted via Fontsource,
-so the page makes no external request of any kind — including to Google Fonts.
+for client-side extraction, both bundled. Instrument Sans, Newsreader and IBM
+Plex Mono are self-hosted via Fontsource, so the page makes no external request
+of any kind — including to Google Fonts. The two pages are linked with plain
+anchors rather than `next/link`, because client-side routing would fetch an RSC
+payload and this origin is not allowed to fetch anything.
 
 No server runtime, no API routes, no database, no analytics.
 
@@ -249,7 +256,9 @@ src/lib/
   tokens.ts    stable token minting
   search.ts    redaction-aware search
   store.ts     the whole application state, in memory
-src/components/  the interface
+src/components/  the interface, including Avocado.tsx for the mark and meter
+src/app/page.tsx         the front page
+src/app/app/page.tsx     the workspace
 scripts/verify-core.ts   the assertions behind this README
 ```
 

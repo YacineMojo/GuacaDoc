@@ -7,15 +7,15 @@ import type { Entity } from "@/lib/types";
 /**
  * The return path.
  *
- * The agent answers in tokens because that is all it ever saw. Pasting its
- * answer here puts the real names back, locally, so the person gets a readable
+ * The agent answers in tokens because tokens are all it ever saw. Pasting the
+ * answer here puts the real names back, in this tab, so you get a readable
  * result without the document having been readable to anyone else.
  */
 export function DecodePanel({ entities }: { entities: Entity[] }) {
   const [input, setInput] = useState("");
   const redactor = useMemo(() => buildRedactor(entities), [entities]);
   const decoded = useMemo(() => redactor.decode(input), [redactor, input]);
-  const substitutions = useMemo(() => {
+  const recognised = useMemo(() => {
     const matches = input.match(/\[[A-Z]+_\d{2,}\]/g) ?? [];
     return new Set(matches).size;
   }, [input]);
@@ -26,20 +26,19 @@ export function DecodePanel({ entities }: { entities: Entity[] }) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Paste the agent's answer here to put the real names back."
-        className="mono min-h-24 flex-1 resize-none border border-line bg-ink-900 px-3 py-2.5 text-xs leading-relaxed text-text placeholder:text-text-faint focus:border-marker focus:outline-none"
+        className="mono min-h-24 flex-1 resize-none rounded-[4px] border border-line bg-white px-3 py-2.5 text-xs leading-relaxed text-text placeholder:text-text-faint focus:border-guac focus:outline-none"
       />
-      <div className="min-h-0 flex-1 overflow-auto border border-line-soft bg-ink-800 px-3 py-2.5">
+      <div className="min-h-0 flex-1 overflow-auto rounded-[4px] border border-line-soft bg-guac-wash px-3 py-2.5">
         {input ? (
           <p className="mono text-xs leading-relaxed whitespace-pre-wrap text-text">{decoded}</p>
         ) : (
-          <p className="mono text-[0.6875rem] text-text-faint">
-            The decoded text appears here. It is produced in this tab from the
-            mapping above.
+          <p className="mono text-[0.6875rem] leading-relaxed text-text-faint">
+            The readable version appears here, put together in this tab from your key.
           </p>
         )}
       </div>
       <p className="label shrink-0">
-        {substitutions} token{substitutions === 1 ? "" : "s"} recognised
+        {recognised} token{recognised === 1 ? "" : "s"} recognised
         {input.includes("[BLOCKED_") && " · withheld values cannot be restored"}
       </p>
     </div>

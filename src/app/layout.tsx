@@ -1,21 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/archivo";
+import "@fontsource-variable/instrument-sans";
+import "@fontsource-variable/newsreader";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/ibm-plex-mono/600.css";
-import "@fontsource/ibm-plex-serif/400.css";
-import "@fontsource/ibm-plex-serif/600.css";
 import "./globals.css";
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/branding";
 
 export const metadata: Metadata = {
   title: `${PRODUCT_NAME} — ${PRODUCT_TAGLINE}`,
   description:
-    "A document stays in your browser tab. An agent reads it through WebMCP tools whose every answer passes a policy layer: stable pseudonyms, a disclosure budget, and a visible audit trail.",
+    "A document stays in your browser tab. An AI agent reads it through WebMCP tools whose every answer passes a policy layer: stable pseudonyms, a disclosure budget, and a visible record of what left.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0c1113",
+  themeColor: "#f4f7ef",
   width: "device-width",
   initialScale: 1,
 };
@@ -28,6 +27,10 @@ export const viewport: Viewport = {
  * Network tab in a few seconds, which is a stronger claim than any promise in
  * a README. It is applied to production builds only, because the dev server
  * needs its websocket to reload the page.
+ *
+ * It is also why navigation between the two pages uses a plain anchor rather
+ * than next/link: client-side routing would fetch an RSC payload, and this
+ * origin is not allowed to fetch anything.
  */
 const CSP = [
   "default-src 'self'",

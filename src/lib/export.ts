@@ -12,7 +12,7 @@ import { budgetBytes, getState } from "./store";
 export function buildAuditExport() {
   const state = getState();
   return {
-    tool: "redaction gateway session record",
+    tool: "GuacaDoc session record",
     exported_at: new Date().toISOString(),
     note: "Source values are intentionally absent. Tokens identify entities without disclosing them.",
     document: state.doc
