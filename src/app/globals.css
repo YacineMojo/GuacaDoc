@@ -1,26 +1,234 @@
 @import "tailwindcss";
 
+/*
+  Visual direction: a control desk.
+
+  The console is dark and matte; the document is a sheet of paper laid on it.
+  That contrast is the whole idea of the product made visible: one surface a
+  person reads, one surface a machine reads. The two panes even use different
+  typefaces, a serif for the document and a monospace for the agent's view, so
+  which world you are looking at is legible before you read a word.
+
+  Red is reserved for one meaning only: something was withheld or refused.
+*/
+
+@theme {
+  --color-ink-900: #0c1113;
+  --color-ink-850: #0f1619;
+  --color-ink-800: #131c1f;
+  --color-ink-700: #1a2529;
+  --color-ink-600: #223037;
+  --color-line: #22323a;
+  --color-line-soft: #1a262b;
+
+  --color-paper: #e9e5dc;
+  --color-paper-dim: #d3cec2;
+  --color-paper-ink: #16191a;
+
+  --color-text: #ccd7d8;
+  --color-text-dim: #7b8f92;
+  --color-text-faint: #506265;
+
+  --color-stamp: #cf3f2b;
+  --color-stamp-dim: #7e2a1e;
+  --color-marker: #d9b23f;
+  --color-marker-dim: #6d5a20;
+  --color-pass: #6f9e7a;
+  --color-pass-dim: #34513c;
+
+  --font-display: "Archivo Variable", "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-serif: "IBM Plex Serif", Georgia, serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-ink-900);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* A faint grid, like the ruled surface of a desk. Barely there on purpose. */
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+::selection {
+  background: var(--color-marker);
+  color: var(--color-paper-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-marker);
+  outline-offset: 2px;
+}
+
+/* --- shared utilities ---------------------------------------------------- */
+
+.label {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.panel {
+  background: var(--color-ink-850);
+  border: 1px solid var(--color-line-soft);
+}
+
+.rule {
+  border-color: var(--color-line-soft);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}
+
+/* --- the paper pane ------------------------------------------------------ */
+
+.paper {
+  background: var(--color-paper);
+  color: var(--color-paper-ink);
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+/* Redaction marks, drawn the way they appear on a released document. */
+.mark {
+  border-radius: 1px;
+  padding: 0 0.12em;
+  cursor: pointer;
+  transition: box-shadow 120ms ease;
+}
+.mark:hover {
+  box-shadow: 0 0 0 2px currentColor;
+}
+.mark-pseudonymized {
+  background: var(--color-marker);
+  color: var(--color-paper-ink);
+}
+.mark-blocked {
+  background: var(--color-paper-ink);
+  color: var(--color-paper);
+  text-decoration: none;
+}
+.mark-visible {
+  background: transparent;
+  color: inherit;
+  box-shadow: inset 0 -2px 0 var(--color-pass);
+}
+
+/* --- the tape ------------------------------------------------------------ */
+
+/*
+  The signature element: everything that leaves the tab is printed on a strip
+  of tape, left to right, and never scrolls back. It is the only part of the
+  interface that moves, and it moves only when a byte actually goes out.
+*/
+.tape {
+  position: relative;
+  background: var(--color-paper);
+  color: var(--color-paper-ink);
+  font-family: var(--font-mono);
+}
+.tape::before,
+.tape::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background-image: radial-gradient(circle at 6px 5px, var(--color-ink-900) 2.5px, transparent 2.6px);
+  background-size: 16px 10px;
+  pointer-events: none;
+}
+.tape::before {
+  top: 0;
+}
+.tape::after {
+  bottom: 0;
+}
+
+.tape-track {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  height: 12.5rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+
+.tape-cell {
+  flex: 0 0 auto;
+  overflow-y: auto;
+  border-right: 1px dashed rgba(22, 25, 26, 0.28);
+  padding: 1.1rem 0.9rem;
+  max-width: 32rem;
+  white-space: pre-wrap;
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+.tape-cell-blocked {
+  background: var(--color-stamp);
+  color: var(--color-paper);
+}
+
+/* --- the meter ----------------------------------------------------------- */
+
+/*
+  A segmented scale rather than a ring: it reads as a fuel gauge, which is the
+  right mental model. You are spending something finite.
+*/
+.meter {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 3.5rem;
+}
+.meter-segment {
+  flex: 1;
+  background: var(--color-ink-700);
+  transition: background-color 200ms ease, height 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrollbars, matched to the desk rather than the OS. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-600) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-ink-600);
+  border-radius: 0;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
 }
