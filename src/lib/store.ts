@@ -30,6 +30,10 @@ export interface AppState {
   toolsRegistered: boolean;
   /** Blocked attempts to reach the network or persistent storage. */
   violations: Array<{ ts: string; api: string; detail: string }>;
+  /** Text currently selected in the document, for the marking bar. */
+  selection: string | null;
+  /** Transient feedback for the marking bar. */
+  notice: { text: string; ok: boolean } | null;
   /** Pending confirmation prompt raised by a write tool. */
   pendingConfirmation: {
     id: string;
@@ -49,6 +53,8 @@ const initialState: AppState = {
   findings: [],
   toolsRegistered: false,
   violations: [],
+  selection: null,
+  notice: null,
   pendingConfirmation: null,
 };
 
@@ -160,6 +166,15 @@ export function setTypeLevel(type: Entity["type"], level: Entity["level"]) {
 
 export function removeEntity(id: string) {
   setState((s) => ({ entities: s.entities.filter((e) => e.id !== id) }));
+}
+
+export function setSelection(selection: string | null) {
+  if (getState().selection === selection) return;
+  setState({ selection });
+}
+
+export function setNotice(notice: AppState["notice"]) {
+  setState({ notice });
 }
 
 export function addFinding(finding: Finding) {

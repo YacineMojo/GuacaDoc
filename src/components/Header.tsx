@@ -7,6 +7,7 @@ import { formatBytes, formatPercent } from "@/lib/format";
 import { resetSession } from "@/lib/store";
 import type { AppState } from "@/lib/store";
 import { GuacaMark } from "./Avocado";
+import { MarkBar } from "./MarkBar";
 import { Button } from "./ui";
 
 export function Header({
@@ -15,18 +16,22 @@ export function Header({
   toolCount,
   tab,
   onTab,
+  entitiesOpen,
+  onToggleEntities,
 }: {
   state: AppState;
   webmcp: boolean;
   toolCount: number;
   tab: string;
   onTab: (tab: string) => void;
+  entitiesOpen: boolean;
+  onToggleEntities: () => void;
 }) {
   const tabs = ["Document", "Agent"];
 
   return (
-    <header className="z-30 shrink-0 border-b border-line bg-white">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
+    <header className="z-30 shrink-0">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line bg-white px-4 py-2.5">
         <a href="/" className="flex items-center gap-2.5" title="Back to the front page">
           <GuacaMark size={23} />
           <span className="font-display text-sm font-semibold tracking-tight text-rind">
@@ -38,7 +43,7 @@ export function Header({
           className="flex items-center gap-1.5"
           title={
             webmcp
-              ? "This browser exposes document.modelContext, so an agent can call the tools directly."
+              ? "This browser exposes document.modelContext, so an agent can call the tools directly. It can also read what is on screen."
               : "No WebMCP in this browser. The tools are registered locally and the console calls them the same way."
           }
         >
@@ -52,8 +57,7 @@ export function Header({
           <div className="mono flex min-w-0 items-center gap-2 text-[0.6875rem] text-text-dim">
             <span className="truncate text-text">{state.doc.name}</span>
             <span className="text-text-faint">
-              {formatBytes(state.doc.byteLength)} · {state.doc.sections.length} sections ·{" "}
-              {state.entities.length} found
+              {formatBytes(state.doc.byteLength)} · {state.doc.sections.length} sections
             </span>
           </div>
         )}
@@ -96,6 +100,17 @@ export function Header({
             </nav>
           )}
 
+          {state.doc && tab === "Document" && (
+            <Button
+              size="sm"
+              tone={entitiesOpen ? "primary" : "neutral"}
+              onClick={onToggleEntities}
+              title="Show or hide everything detected in this file"
+            >
+              Found {state.entities.length}
+            </Button>
+          )}
+
           {state.doc && (
             <div className="flex items-center gap-2">
               <Button size="sm" onClick={downloadAuditLog} title="Download the session record as JSON">
@@ -113,6 +128,8 @@ export function Header({
           )}
         </div>
       </div>
+
+      {state.doc && tab === "Document" && <MarkBar state={state} />}
     </header>
   );
 }

@@ -2,21 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { AgentConsole } from "@/components/AgentConsole";
-import { AgentPane } from "@/components/AgentPane";
 import { AuditLog } from "@/components/AuditLog";
-import { AvocadoMeter, AvocadoWhole, GuacamoleBowl } from "@/components/Avocado";
+import { AvocadoWhole, GuacamoleBowl } from "@/components/Avocado";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DecodePanel } from "@/components/DecodePanel";
-import { DocumentPane } from "@/components/DocumentPane";
 import { DropZone } from "@/components/DropZone";
 import { EntityPanel } from "@/components/EntityPanel";
 import { Header } from "@/components/Header";
 import { Meter } from "@/components/Meter";
+import { SplitDocument } from "@/components/SplitDocument";
 import { Strip } from "@/components/Strip";
 import { TokenMap } from "@/components/TokenMap";
-import { Panel } from "@/components/ui";
+import { Button, Panel } from "@/components/ui";
 import { installGuards } from "@/lib/guards";
 import { budgetBytes, consumedRatio, documentConsumedRatio } from "@/lib/store";
+import { useDocumentSelection } from "@/lib/useSelection";
 import { useStore } from "@/lib/useStore";
 import { isWebMcpAvailable, localTools } from "@/lib/webmcp/api";
 import { registerAllTools } from "@/lib/webmcp/tools";
@@ -24,6 +24,8 @@ import { registerAllTools } from "@/lib/webmcp/tools";
 export default function Workspace() {
   const state = useStore();
   const [tab, setTab] = useState("Document");
+  const [entitiesOpen, setEntitiesOpen] = useState(true);
+  useDocumentSelection();
 
   useEffect(() => {
     installGuards();
@@ -39,7 +41,15 @@ export default function Workspace() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <Header state={state} webmcp={webmcp} toolCount={toolCount} tab={tab} onTab={setTab} />
+      <Header
+        state={state}
+        webmcp={webmcp}
+        toolCount={toolCount}
+        tab={tab}
+        onTab={setTab}
+        entitiesOpen={entitiesOpen}
+        onToggleEntities={() => setEntitiesOpen((open) => !open)}
+      />
 
       {state.violations.length > 0 && (
         <div className="mono border-b border-stone bg-stone px-4 py-2 text-[0.6875rem] text-stone-text">
@@ -54,9 +64,13 @@ export default function Workspace() {
         {!state.doc ? (
           <Start />
         ) : tab === "Document" ? (
-          <DocumentView state={state} />
+          <DocumentView
+            state={state}
+            entitiesOpen={entitiesOpen}
+            onCloseEntities={() => setEntitiesOpen(false)}
+          />
         ) : (
-          <AgentView state={state} />
+          <AgentView state={state} agentAttached={webmcp} />
         )}
       </main>
 
@@ -113,44 +127,62 @@ function Start() {
   );
 }
 
-function DocumentView({ state }: { state: ReturnType<typeof useStore> }) {
+function DocumentView({
+  state,
+  entitiesOpen,
+  onCloseEntities,
+}: {
+  state: ReturnType<typeof useStore>;
+  entitiesOpen: boolean;
+  onCloseEntities: () => void;
+}) {
   if (!state.doc) return null;
+
   return (
-    <div className="grid h-full min-h-0 grid-cols-1 gap-px bg-line xl:grid-cols-[1fr_1fr_340px]">
-      <Panel
-        title="Your document"
-        icon={<AvocadoWhole size={17} />}
-        aside={<span className="label">click a mark to change it</span>}
-        bodyClassName="min-h-0"
-        className="min-h-[24rem] rounded-none border-0"
-      >
-        <DocumentPane text={state.doc.text} entities={state.entities} />
-      </Panel>
+    <div className="flex h-full min-h-0">
+      <div className="min-w-0 flex-1">
+        <SplitDocument text={state.doc.text} entities={state.entities} />
+      </div>
 
-      <Panel
-        title="What the agent receives"
-        icon={<GuacamoleBowl size={19} />}
-        aside={<span className="label">after substitution</span>}
-        bodyClassName="min-h-0"
-        className="min-h-[24rem] rounded-none border-0"
-        dark
-      >
-        <AgentPane text={state.doc.text} entities={state.entities} />
-      </Panel>
-
-      <Panel
-        title="Found in this file"
-        aside={<span className="label">{state.entities.length}</span>}
-        bodyClassName="min-h-0"
-        className="min-h-[24rem] rounded-none border-0"
-      >
-        <EntityPanel entities={state.entities} />
-      </Panel>
+      {entitiesOpen && (
+        <>
+          {/* Below lg the list would squeeze the comparison, so it covers instead. */}
+          <button
+            aria-label="Close the list"
+            onClick={onCloseEntities}
+            className="fixed inset-0 z-20 bg-rind/30 lg:hidden"
+          />
+          <aside className="fixed inset-y-0 right-0 z-20 flex w-80 max-w-[85vw] flex-col border-l border-line bg-white lg:static lg:z-auto lg:w-[340px] lg:max-w-none lg:shrink-0">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-line-soft px-4 py-2.5">
+              <h2 className="label">Found in this file</h2>
+              <div className="flex items-center gap-2">
+                <span className="label">{state.entities.length}</span>
+                <button
+                  onClick={onCloseEntities}
+                  title="Hide the list"
+                  className="mono text-sm leading-none text-text-faint hover:text-text"
+                >
+                  ×
+                </button>
+              </div>
+            </header>
+            <div className="min-h-0 flex-1">
+              <EntityPanel entities={state.entities} />
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   );
 }
 
-function AgentView({ state }: { state: ReturnType<typeof useStore> }) {
+function AgentView({
+  state,
+  agentAttached,
+}: {
+  state: ReturnType<typeof useStore>;
+  agentAttached: boolean;
+}) {
   const withheld = state.entities.filter((e) => e.level === "blocked").length;
 
   return (
@@ -194,7 +226,7 @@ function AgentView({ state }: { state: ReturnType<typeof useStore> }) {
         </Panel>
 
         <Panel title="Your key" bodyClassName="min-h-0" className="min-h-[20rem] rounded-none border-0">
-          <TokenMap entities={state.entities} />
+          <TokenMap entities={state.entities} agentAttached={agentAttached} />
         </Panel>
 
         <Panel

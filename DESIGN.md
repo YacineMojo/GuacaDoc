@@ -43,6 +43,32 @@ it as a standards pictogram is what separates an offbeat brand from a student
 project. At 22 pixels the mark is two shapes only, silhouette and stone,
 because a mark that needs a third colour to read is not a mark.
 
+## A mark means something was done
+
+Filled marks mean the text was changed on the way out: flesh green for a token,
+stone brown for a withheld value. A value the user chose to let through gets a
+dotted underline and nothing else.
+
+The first version highlighted let-through values the same way as protected
+ones, and the first question anyone asked was why some highlights did not
+substitute anything. A highlight that protects nothing devalues every highlight
+next to it.
+
+## The marking bar does not move
+
+Classifying a selection used to happen in a popover next to the selection. It
+failed twice over: it missed any selection that ended outside the text pane,
+because the mouseup never reached the pane, and it covered the words you were
+about to classify. It now lives at the left of the top bar, always present,
+disabled until there is something to mark. Slower to reach, and it never
+disappears when you need it.
+
+## The two documents are never stacked
+
+The product is a comparison, and a comparison you have to scroll between is not
+one. The panes sit side by side at every width and scroll together on ratio
+rather than pixel offset, since substitution changes how long the text is.
+
 ## Rejected
 
 - **A dark control-desk theme.** It was the first direction and it worked, but

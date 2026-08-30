@@ -49,20 +49,34 @@ export const PATTERN_RULES: PatternRule[] = [
   {
     type: "location",
     label: "Postal address",
-    // Two shapes: French "9 rue des Ateliers", English "41 Harrowgate Row".
+    /*
+     * An address is one entity, not three. Matching the house number, the
+     * street and the town together is what lets a single token stand for the
+     * whole thing; matching only the town would leave the street in the
+     * outbound text, which is the part that actually locates someone.
+     *
+     * Two shapes: French "9 rue des Ateliers, 59300 Vaubercourt" and English
+     * "41 Harrowgate Row, Elverstoke". The town half is optional in both.
+     */
     regex: new RegExp(
-      "\\b\\d{1,4}(?:\\s?(?:bis|ter))?\\s+(?:rue|avenue|boulevard|impasse|all[ée]e|place|chemin|route|quai)\\s+[^,\\n]{2,50}" +
-        "|\\b\\d{1,4}\\s+[\\p{Lu}][\\p{L}'-]*(?:\\s+[\\p{Lu}][\\p{L}'-]*)*\\s+" +
-        "(?:Street|St|Road|Rd|Row|Lane|Ln|Avenue|Ave|Drive|Dr|Way|Square|Sq|Court|Ct|Close|Place|Pl)\\b" +
-        "(?:,\\s*[\\p{Lu}][\\p{L}'-]+)?",
+      // French: number, street type, street name, optional postcode and town
+      "\\d{1,4}(?:[ ](?:bis|ter))?[ ]" +
+        "(?:rue|avenue|av\\.|boulevard|bd|impasse|all[ée]e|place|chemin|route|quai|voie|cours)" +
+        "[ ](?:(?:de|des|du|la|le|l')[ ])?(?:[\\p{L}'-]+[ ]){0,2}[\\p{L}'-]+" +
+        "(?:,[ ]*\\d{4,5}[ ][\\p{Lu}][\\p{L}'-]+(?:[ -][\\p{Lu}][\\p{L}'-]+)*)?" +
+        "|" +
+        // English: number, name, street type, optional town
+        "\\d{1,4}[ ][\\p{Lu}][\\p{L}'-]*(?:[ ][\\p{Lu}][\\p{L}'-]*){0,2}[ ]" +
+        "(?:Street|St|Road|Rd|Row|Lane|Ln|Avenue|Ave|Drive|Dr|Way|Square|Sq|Court|Ct|Close|Place|Pl)" +
+        "\\b(?:,[ ]*[\\p{Lu}][\\p{L}'-]+)?",
       "giu",
     ),
   },
   {
     type: "location",
     label: "Postcode and town",
-    // Anchored to a single line: a number ending one line and a capitalized
-    // word starting the next is not an address.
+    // Only fires where no full address matched, since that rule is declared
+    // first and wins the overlap.
     regex: /(?<![-/\d])\b\d{4,5}[ ][\p{Lu}][\p{L}'-]+(?:[ -][\p{Lu}][\p{L}'-]+)*/gu,
   },
   {

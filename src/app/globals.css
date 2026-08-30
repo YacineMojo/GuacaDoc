@@ -128,13 +128,20 @@ body {
   background: var(--color-stone);
   color: var(--color-stone-text);
 }
+/*
+ * A filled mark means something was done to the text. A value the user chose
+ * to let through gets a dotted underline instead: still findable, but it never
+ * reads as protection, which a solid highlight did.
+ */
 .mark-visible {
   background: transparent;
   padding: 0.05em 0;
-  box-shadow: inset 0 -0.18em 0 var(--color-flesh);
+  box-shadow: none;
+  border-bottom: 1px dotted var(--color-text-faint);
 }
 .mark-visible:hover {
   box-shadow: 0 0 0 2px var(--color-guac);
+  border-bottom-color: transparent;
 }
 
 /* --- what the machine reads --------------------------------------------- */

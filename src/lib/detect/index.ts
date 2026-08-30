@@ -8,11 +8,14 @@ import { findNameCandidates } from "./heuristics";
 /**
  * Default level per type.
  *
- * Bank details carry no analytical value and are blocked outright. Direct
- * identifiers are pseudonymized so the agent can still reason about who does
- * what. Dates and amounts stay visible because removing them usually destroys
- * the analysis, and they identify nobody on their own. Every one of these is
- * one click away from being changed.
+ * Everything detected is protected by default. That is the only rule that
+ * makes the document pane readable at a glance: if it is marked, it is
+ * handled. A mark that meant "found this, doing nothing about it" would teach
+ * people to trust a highlight that protects nothing.
+ *
+ * Bank details go further and are withheld outright, because an account number
+ * carries no analytical value at all. Dates and amounts usually matter to the
+ * analysis, and one click on the group header lets them through.
  */
 export const DEFAULT_LEVELS: Record<EntityType, EntityLevel> = {
   person: "pseudonymized",
@@ -24,8 +27,8 @@ export const DEFAULT_LEVELS: Record<EntityType, EntityLevel> = {
   id: "pseudonymized",
   location: "pseudonymized",
   reference: "pseudonymized",
-  date: "visible",
-  amount: "visible",
+  date: "pseudonymized",
+  amount: "pseudonymized",
   custom: "pseudonymized",
 };
 

@@ -38,9 +38,14 @@ type. It is a generic disclosure-control surface for agents.
    (a fictional services agreement, written for this project). No account, no
    sign-in, nothing uploaded.
 2. **Document** tab: your file on the left, the agent's view of it on the
-   right, everything that was found on the far right. Click any mark to switch
-   it between *shown*, *token* and *withheld*, and watch the right pane change.
-   Select any text to mark something detection missed.
+   right, scrolled together. Everything detected is protected from the start —
+   if it is marked, it is handled — so a highlight never means "found this,
+   doing nothing about it". Click any mark to switch it between *shown*,
+   *token* and *withheld*, or use a group header to change a whole type at
+   once. Select any text and the marking bar at the top of the window lets you
+   classify it; a selection that contains existing marks folds them into one
+   entity, which is how a house number, a street and a town become a single
+   address behind a single token.
 3. **Agent** tab: press **Sample investigation**. Four tool calls run, the
    strip across the top prints what left the tab, and the record logs each call
    with its byte cost. The meter is a halved avocado: the flesh fills as the
@@ -124,6 +129,15 @@ These are real limits, and they are stated here rather than discovered later.
 - **Extraction is imperfect.** PDF text extraction reconstructs lines from
   glyph positions and can misplace them. Scanned PDFs with no text layer are
   rejected outright, because OCR would need a model this app refuses to call.
+- **An agent driving this tab can read the screen.** This is the important one.
+  WebMCP agents operate a page; they are not limited to the tools it exposes.
+  Nothing a browser page can do prevents an agent from reading the DOM or
+  taking a screenshot of the window, so GuacaDoc defends the *network* path —
+  the upload, the retention, the training set — not the glass. Two consequences
+  are built in: the token-to-value key is never rendered until you press
+  **Reveal**, so it is absent from the DOM rather than merely blurred, and
+  withheld values are not listed anywhere. Keep the Document tab closed while
+  an agent works if the source text itself is sensitive.
 - **This is not compliance.** No claim is made about any regulation.
 
 ## How it works
@@ -152,6 +166,12 @@ agent ──► document.modelContext ──► registerToolWithPolicy
 to the agent; `registerToolWithPolicy` does. A handler that returned the entire
 document would still be scrubbed and would still be refused for exceeding the
 budget, because scrubbing is not something a handler opts into.
+
+**Everything detected is protected by default**, with bank details withheld
+outright. Dates and amounts are usually needed for the analysis and are one
+click away from being let through, per type. The alternative — letting some
+types through by default — made highlights ambiguous, because a mark that
+protects nothing teaches people to trust the ones that do.
 
 **Token stability** is what keeps the analysis worth having. One source value
 always maps to one token, everywhere, for the whole session. Randomized
