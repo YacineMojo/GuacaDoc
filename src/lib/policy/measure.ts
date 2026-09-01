@@ -1,6 +1,14 @@
 import type { Redactor, Leak } from "../redact";
 
 /**
+ * Share of the document an agent may receive over a whole session.
+ *
+ * Lives here rather than in the store because the landing page reads it at
+ * build time to state the real default, and the store is a client module.
+ */
+export const DEFAULT_BUDGET_RATIO = 0.3;
+
+/**
  * Walks a tool result, scrubs every string in it and counts what that costs.
  *
  * The counting rule is deliberately fail-safe: a string is billable unless its

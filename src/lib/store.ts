@@ -8,6 +8,7 @@ import type {
   PolicyDecision,
   TransmittedChunk,
 } from "./types";
+import { DEFAULT_BUDGET_RATIO } from "./policy/measure";
 
 /**
  * The whole application state, held in a module-level singleton.
@@ -60,7 +61,7 @@ export interface AppState {
 const initialState: AppState = {
   doc: null,
   entities: [],
-  budgetRatio: 0.3,
+  budgetRatio: DEFAULT_BUDGET_RATIO,
   bytesSpent: 0,
   audit: [],
   transmitted: [],
