@@ -1,7 +1,0 @@
-node_modules
-.next
-out
-.git
-*.md
-!README.md
-shoot.tmp.mjs

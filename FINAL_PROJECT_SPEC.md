@@ -439,8 +439,8 @@ Bytes are UTF-8 (`TextEncoder`), not string length.
 The strongest guarantees in this project are not written in TypeScript.
 
 **CSP** — `src/app/layout.tsx` emits it as a `<meta http-equiv>` in production
-builds, and all three deployment targets send it as a real header
-(`nginx.conf.template`, `netlify.toml`, `public/serve.json`):
+builds, and both deployment targets send it as a real header
+(`server.mjs`, `netlify.toml`):
 
 ```
 default-src 'self'; connect-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval';
@@ -456,11 +456,11 @@ any sentence in a README.
 
 **`Origin-Agent-Cluster: ?1`** — WebMCP is exposed only to origin-isolated
 documents. Without it `registerTool()` rejects, and the page would announce
-tools no agent can reach. Sent by all three targets.
+tools no agent can reach. Sent by both targets.
 
 Also sent: `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`
 (plus a `<meta name="referrer">`), and `Cross-Origin-Opener-Policy: same-origin`
-from nginx.
+from `server.mjs`.
 
 **Runtime traps** — `src/lib/guards.ts`, production only (the dev server needs
 its websocket). `fetch`, `XMLHttpRequest.open`, `WebSocket`, `sendBeacon`,
@@ -568,7 +568,7 @@ Roughly 6 500 lines across `src/`.
 | --- | --- |
 | `npm run dev` | copies the worker, starts `next dev` (no CSP, no guards) |
 | `npm run build` | copies the worker, static export to `out/` |
-| `npm start` | serves `out/` on :3000 **with the real headers**, via `public/serve.json` |
+| `npm start` | serves `out/` on `$PORT` (3000 by default) **with the real headers**, via `server.mjs` |
 | `npm run verify` | the 28 core assertions |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | `eslint` |
@@ -578,7 +578,8 @@ Roughly 6 500 lines across `src/`.
 behaves like the deployed site, and the only one where the CSP and the runtime
 guards are active.
 
-**Deployment targets in the repo:** Netlify (`netlify.toml`, publishes `out/`),
-Docker + nginx (`Dockerfile`, `nginx.conf.template`, `PORT` templated), and
-Railway (`railway.json`, Dockerfile builder). All three serve static files and
-all three send the same security headers.
+**Deployment targets in the repo:** Netlify (`netlify.toml`, publishes `out/`)
+and Railway (`railway.json`, Railpack Node builder: `npm run build` then
+`npm start`, `PORT` from the environment). Both serve static files, both send
+the same security headers, and Railway runs the same `server.mjs` as the local
+preview.

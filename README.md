@@ -73,9 +73,9 @@ WebMCP needs a browser that exposes `document.modelContext`:
 agent cluster is origin-keyed, which means the response has to carry
 `Origin-Agent-Cluster: ?1`. Without it `registerTool()` rejects with a
 `SecurityError` and an agent has nothing to call, which looks from the outside
-exactly like the policy layer doing nothing. The deployment configs
-(`nginx.conf.template`, `netlify.toml`) and the local production preview
-(`public/serve.json`, served by `npm start`) all send it. `next dev` cannot:
+exactly like the policy layer doing nothing. The static file server
+(`server.mjs`, used by `npm start` and by the deployment) and `netlify.toml`
+both send it. `next dev` cannot:
 response headers are unsupported alongside `output: export`, so test real agents
 against a built copy rather than the dev server.
 
@@ -252,11 +252,13 @@ Build and serve `out/` to see the enforced version.
 
 ## Deployment
 
-The build is a folder of static files. `Dockerfile` serves `out/` with nginx
-and sets the same CSP as a real response header, which is how `frame-ancestors`
-becomes effective.
+The build is a folder of static files. `server.mjs` serves `out/` and sets the
+same CSP as a real response header, which is how `frame-ancestors` becomes
+effective. It is the same command locally and in production, so the preview and
+the deployment carry an identical header set.
 
-Railway, or anything that builds a Dockerfile:
+Railway builds it as a Node project: `npm run build` produces `out/`, then
+`npm start` serves it on `$PORT`. No Dockerfile is involved.
 
 ```bash
 railway up

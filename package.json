@@ -5,10 +5,13 @@
   "scripts": {
     "dev": "node scripts/copy-pdf-worker.mjs && next dev",
     "build": "node scripts/copy-pdf-worker.mjs && next build",
-    "start": "npx --yes serve out -l 3000",
+    "start": "node server.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "verify": "tsx scripts/verify-core.ts"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@fontsource-variable/instrument-sans": "^5.3.0",
