@@ -386,9 +386,11 @@ Bytes are UTF-8 (`TextEncoder`), not string length.
 28. **Unseen-call counter** on the Agent tab, cleared by actually looking at the
     record; never a red dot, because a call the policy answered is the system
     working.
-29. **Agent activity bar** on the Document view, stating only what is knowable:
-    that an agent is attached, and which calls you have not looked at, split
-    into answered and refused. It deliberately does not claim the page is being
+29. **Agent activity bar** on the Document view, appearing only when there are
+    calls you have not looked at, and stating only what is knowable: that an
+    agent is attached, and how those calls split into answered and refused. An
+    attached agent that has called nothing is not news, so silence means
+    nothing has happened. It deliberately does not claim the page is being
     read — a DOM snapshot or screenshot is invisible to the page, so a bar that
     lit up for them would be guessing (`AgentActivityBar.tsx`).
 30. Registration-refusal banner naming the count, the last reason, and the two

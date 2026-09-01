@@ -5,11 +5,15 @@ import type { AuditEvent } from "@/lib/types";
 import { Button } from "./ui";
 
 /**
- * What an agent is doing while you are looking at the document itself.
+ * What an agent has done while you are looking at the document itself.
  *
  * This view is the one place the file is rendered in full, so it is the one
- * place where being told is worth an interruption. Two facts are shown and
- * nothing is implied beyond them:
+ * place where being told is worth an interruption. It follows that the bar
+ * only appears when there is something to tell: an attached agent that has
+ * called nothing is not news, and a strip of chrome that is always there is
+ * one people stop reading. Silence means nothing has happened.
+ *
+ * Two facts are shown and nothing is implied beyond them:
  *
  *  - that an agent is attached, which is knowable from the browser exposing
  *    document.modelContext and accepting the tools;
@@ -35,7 +39,7 @@ export function AgentActivityBar({
   unseen: AuditEvent[];
   onOpenRecord: () => void;
 }) {
-  if (!attached && unseen.length === 0) return null;
+  if (unseen.length === 0) return null;
 
   const served = unseen.filter((event) => event.decision === "allowed" || event.decision === "truncated");
   const refused = unseen.filter((event) => !served.includes(event));
@@ -51,34 +55,22 @@ export function AgentActivityBar({
         </span>
       )}
 
-      {unseen.length === 0 ? (
-        <span>
-          It has called nothing yet. This view renders the file itself; the agent view does not.
-        </span>
-      ) : (
-        <>
-          <span>
-            {served.length > 0 && (
-              <span className="text-guac-dark">
-                {served.length} call{served.length > 1 ? "s" : ""} answered · {formatBytes(bytes)}
-              </span>
-            )}
-            {served.length > 0 && refused.length > 0 && " · "}
-            {refused.length > 0 && (
-              <span className="text-stone-text">
-                {refused.length} refused
-              </span>
-            )}
-            {" since you last looked at the record."}
+      <span>
+        {served.length > 0 && (
+          <span className="text-guac-dark">
+            {served.length} call{served.length > 1 ? "s" : ""} answered · {formatBytes(bytes)}
           </span>
-          <span className="text-text-faint">Latest: {latest.tool}</span>
-          <span className="ml-auto">
-            <Button size="sm" onClick={onOpenRecord} title="Open the agent view and its record">
-              See what left
-            </Button>
-          </span>
-        </>
-      )}
+        )}
+        {served.length > 0 && refused.length > 0 && " · "}
+        {refused.length > 0 && <span className="text-stone-text">{refused.length} refused</span>}
+        {" since you last looked at the record."}
+      </span>
+      <span className="text-text-faint">Latest: {latest.tool}</span>
+      <span className="ml-auto">
+        <Button size="sm" onClick={onOpenRecord} title="Open the agent view and its record">
+          See what left
+        </Button>
+      </span>
     </div>
   );
 }
