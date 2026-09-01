@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AgentActivityBar } from "@/components/AgentActivityBar";
 import { AgentConsole } from "@/components/AgentConsole";
 import { AuditLog } from "@/components/AuditLog";
 import { AvocadoWhole, GuacamoleBowl } from "@/components/Avocado";
@@ -13,11 +14,12 @@ import { Meter } from "@/components/Meter";
 import { SplitDocument } from "@/components/SplitDocument";
 import { Strip } from "@/components/Strip";
 import { TokenMap } from "@/components/TokenMap";
-import { Button, Panel } from "@/components/ui";
+import { Panel } from "@/components/ui";
 import { installGuards } from "@/lib/guards";
 import { budgetBytes, consumedRatio, documentConsumedRatio } from "@/lib/store";
 import { useDocumentSelection } from "@/lib/useSelection";
 import { useStore } from "@/lib/useStore";
+import type { AuditEvent } from "@/lib/types";
 import { isWebMcpAvailable, localTools } from "@/lib/webmcp/api";
 import { registerAllTools } from "@/lib/webmcp/tools";
 
@@ -25,11 +27,12 @@ export default function Workspace() {
   const state = useStore();
   const [tab, setTab] = useState("Document");
   const [entitiesOpen, setEntitiesOpen] = useState(true);
+  const [seenAuditSeq, setSeenAuditSeq] = useState(0);
   useDocumentSelection();
 
   useEffect(() => {
     installGuards();
-    registerAllTools();
+    return registerAllTools();
   }, []);
 
   // Registration flips a flag on the external store, which re-renders this
@@ -37,7 +40,23 @@ export default function Workspace() {
   // render and the client one.
   const registered = state.toolsRegistered;
   const webmcp = registered && isWebMcpAvailable();
-  const toolCount = registered ? localTools().length : 0;
+  // What the browser confirmed holding, where it can be asked. The local
+  // registry is only the fallback, because it counts what was offered rather
+  // than what an agent can actually call.
+  const toolCount = registered
+    ? (state.browserTools?.accepted.length ?? localTools().length)
+    : 0;
+  const refused = state.browserTools?.rejected ?? [];
+
+  // Calls an agent made that the record on the agent view has not shown the
+  // user yet. Opening that view is what marks them seen, so the count cannot
+  // survive having been looked at.
+  const lastAuditSeq = state.audit.length > 0 ? state.audit[state.audit.length - 1].seq : 0;
+  // Adjusted during render rather than in an effect: while the agent view is
+  // open the record is on screen, so a call is seen the moment it lands, and
+  // an effect would let the count flash before clearing itself.
+  if (tab === "Agent" && seenAuditSeq !== lastAuditSeq) setSeenAuditSeq(lastAuditSeq);
+  const unseen = state.audit.filter((event) => event.seq > seenAuditSeq && !event.boundary);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -49,7 +68,29 @@ export default function Workspace() {
         onTab={setTab}
         entitiesOpen={entitiesOpen}
         onToggleEntities={() => setEntitiesOpen((open) => !open)}
+        unseenCount={unseen.length}
       />
+
+      {state.doc && tab === "Document" && (
+        <AgentActivityBar
+          attached={webmcp}
+          unseen={unseen}
+          onOpenRecord={() => setTab("Agent")}
+        />
+      )}
+
+      {refused.length > 0 && (
+        <div className="mono border-b border-stone bg-stone px-4 py-2 text-[0.6875rem] text-stone-text">
+          The browser refused {refused.length} of {refused.length + toolCount} tool
+          {refused.length + toolCount > 1 ? "s" : ""}, so an agent cannot call{" "}
+          {refused.length > 1 ? "them" : "it"} and nothing they do will appear in the record.
+          Latest: {refused[refused.length - 1].name} —{" "}
+          {refused[refused.length - 1].reason.replace(/\.\s*$/, "")}.{" "}
+          WebMCP needs an origin-isolated document; check that the page is served with{" "}
+          <span className="text-text">Origin-Agent-Cluster: ?1</span> and that the{" "}
+          <span className="text-text">tools</span> permission policy is not switched off.
+        </div>
+      )}
 
       {state.violations.length > 0 && (
         <div className="mono border-b border-stone bg-stone px-4 py-2 text-[0.6875rem] text-stone-text">
@@ -62,7 +103,7 @@ export default function Workspace() {
 
       <main className="min-h-0 flex-1 overflow-auto">
         {!state.doc ? (
-          <Start />
+          <Start audit={state.audit} />
         ) : tab === "Document" ? (
           <DocumentView
             state={state}
@@ -84,7 +125,7 @@ export default function Workspace() {
   );
 }
 
-function Start() {
+function Start({ audit }: { audit: AuditEvent[] }) {
   return (
     <div className="mx-auto max-w-2xl px-6 py-14">
       <div className="flex items-center gap-3">
@@ -102,6 +143,28 @@ function Start() {
       <div className="mt-7">
         <DropZone />
       </div>
+
+      {/*
+        An attached agent usually probes the tools before anyone has opened a
+        file. Those calls are answered and recorded, so they are shown here
+        rather than left invisible until a document exists: an empty record on
+        a page that says "webmcp live" is indistinguishable from a broken one.
+      */}
+      {audit.length > 0 && (
+        <section className="panel mt-8 overflow-hidden">
+          <header className="flex items-center justify-between border-b border-line-soft bg-guac-wash px-4 py-2.5">
+            <h2 className="label text-leaf">An agent has already called these tools</h2>
+            <span className="label">{audit.length}</span>
+          </header>
+          <p className="border-b border-line-soft px-5 py-3 text-[0.8125rem] leading-relaxed text-text-dim">
+            Nothing was disclosed: with no document open every tool returns a refusal. The record
+            below is kept when you open a file, so the trail starts where the agent did.
+          </p>
+          <div className="max-h-56 overflow-auto">
+            <AuditLog audit={audit} />
+          </div>
+        </section>
+      )}
 
       <section className="panel mt-8 overflow-hidden">
         <header className="border-b border-line-soft bg-guac-wash px-4 py-2.5">

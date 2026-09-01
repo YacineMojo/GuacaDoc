@@ -11,7 +11,8 @@ import {
   getState,
   setState,
 } from "../store";
-import { clearLocalRegistry } from "./api";
+import { beginRegistration, toolsHeldByBrowser, withdrawRegistration } from "./api";
+import type { RegistrationOutcome } from "./api";
 
 /**
  * The whole tool surface. Four reads and one write, and that is on purpose.
@@ -25,10 +26,21 @@ import { clearLocalRegistry } from "./api";
 
 const PER_CALL_CAP = 4096;
 
-export function registerAllTools(): void {
-  clearLocalRegistry();
+/**
+ * Registers the whole surface and reports what the browser accepted.
+ *
+ * Returns a disposer. Calling it withdraws the tools, which is the only way
+ * back out: the API has no unregisterTool(), so a registration is revoked by
+ * aborting the signal it was made with. Without that, a second mount offers
+ * five names the browser already holds, every one is refused with
+ * InvalidStateError, and the page goes on advertising tools that an agent is
+ * being answered on by an older set of closures.
+ */
+export function registerAllTools(): () => void {
+  const signal = beginRegistration();
+  const pending: Array<Promise<RegistrationOutcome>> = [];
 
-  registerToolWithPolicy(
+  pending.push(registerToolWithPolicy(
     {
       name: "get_document_outline",
       description:
@@ -59,9 +71,10 @@ export function registerAllTools(): void {
       // would push agents to skip the cheap step and read sections blind.
       freeKeys: ["title"],
     },
-  );
+    signal,
+  ));
 
-  registerToolWithPolicy<{ query: string; limit?: number }>(
+  pending.push(registerToolWithPolicy<{ query: string; limit?: number }>(
     {
       name: "search_document",
       description:
@@ -102,9 +115,10 @@ export function registerAllTools(): void {
       // snippets are new information leaving the tab.
       freeKeys: ["query", "title"],
     },
-  );
+    signal,
+  ));
 
-  registerToolWithPolicy<{ id: string }>(
+  pending.push(registerToolWithPolicy<{ id: string }>(
     {
       name: "get_section",
       description: "Return the text of one section, identified by the id from the outline.",
@@ -131,9 +145,10 @@ export function registerAllTools(): void {
       },
     },
     { access: "read", maxBytesPerCall: PER_CALL_CAP, substitute: true, requireConfirmation: false },
-  );
+    signal,
+  ));
 
-  registerToolWithPolicy(
+  pending.push(registerToolWithPolicy(
     {
       name: "get_metrics",
       description: "Report how much of the disclosure budget this session has used.",
@@ -146,14 +161,15 @@ export function registerAllTools(): void {
           bytes_remaining: bytesRemaining(state),
           document_bytes: state.doc?.byteLength ?? 0,
           document_consumed_ratio: Number(documentConsumedRatio(state).toFixed(4)),
-          calls_made: state.audit.length,
+          calls_made: state.audit.filter((event) => !event.boundary).length,
         };
       },
     },
     { access: "read", maxBytesPerCall: PER_CALL_CAP, substitute: true, requireConfirmation: false },
-  );
+    signal,
+  ));
 
-  registerToolWithPolicy<{ section_id: string; note: string }>(
+  pending.push(registerToolWithPolicy<{ section_id: string; note: string }>(
     {
       name: "add_finding",
       description: "Record one observation against a section; the user must approve it first.",
@@ -182,7 +198,47 @@ export function registerAllTools(): void {
       },
     },
     { access: "write", maxBytesPerCall: PER_CALL_CAP, substitute: true, requireConfirmation: true },
-  );
+    signal,
+  ));
 
   setState({ toolsRegistered: true });
+  void publishRegistrationReport(pending, signal);
+
+  return () => {
+    withdrawRegistration();
+    setState({ toolsRegistered: false, browserTools: null });
+  };
+}
+
+/**
+ * Publishes what the browser did with the offer.
+ *
+ * getTools() is asked first, because it is the browser's own answer and the
+ * only one that cannot be wrong. Where it is missing, the outcome of each
+ * registerTool() call stands in. Either way the number in the header is a
+ * measurement, not an assumption, so "live · 5 tools" above an empty record
+ * becomes impossible.
+ */
+async function publishRegistrationReport(
+  pending: Array<Promise<RegistrationOutcome>>,
+  signal: AbortSignal,
+): Promise<void> {
+  const outcomes = await Promise.all(pending);
+  if (signal.aborted) return;
+
+  const held = await toolsHeldByBrowser();
+  if (signal.aborted) return;
+
+  const offered = outcomes.map((o) => o.name);
+  const accepted = held ? held.filter((name) => offered.includes(name)) : outcomes.filter((o) => o.accepted).map((o) => o.name);
+  const rejected = outcomes
+    .filter((o) => !accepted.includes(o.name))
+    .map((o) => ({ name: o.name, reason: o.reason ?? "the browser did not keep this tool" }));
+
+  setState({
+    browserTools:
+      held === null && rejected.length === outcomes.length && rejected.every((r) => r.reason === "no WebMCP in this browser")
+        ? null
+        : { accepted, rejected, verified: held !== null },
+  });
 }

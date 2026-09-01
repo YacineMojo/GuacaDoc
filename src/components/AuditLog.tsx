@@ -26,6 +26,21 @@ export function AuditLog({ audit }: { audit: AuditEvent[] }) {
   return (
     <ul className="mono divide-y divide-line-soft text-[0.6875rem]">
       {[...audit].reverse().map((event) => {
+        if (event.boundary) {
+          // Not a call: the seam where a document was opened and the budget
+          // and tokens restarted. Calls either side of it are not comparable,
+          // and hiding the seam would be worse than showing it.
+          return (
+            <li key={event.seq} className="flex items-center gap-2 bg-guac-wash px-3 py-1.5">
+              <span className="text-text-faint tabular-nums">
+                {String(event.seq).padStart(3, "0")}
+              </span>
+              <span className="text-text-faint">{formatClock(event.ts)}</span>
+              <span className="h-px flex-1 bg-guac/40" />
+              <span className="truncate text-guac-dark">{event.tool}</span>
+            </li>
+          );
+        }
         const refused = event.decision !== "allowed" && event.decision !== "truncated";
         return (
           <li key={event.seq} className={`px-3 py-2 ${refused ? "bg-stone-soft/20" : ""}`}>

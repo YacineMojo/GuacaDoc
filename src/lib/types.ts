@@ -81,6 +81,15 @@ export interface AuditEvent {
   /** Billable bytes actually charged for this call. */
   bytes: number;
   detail?: string;
+  /**
+   * Set on a session boundary rather than a tool call.
+   *
+   * Loading a document restarts the budget and the token registry, so calls
+   * either side of it are not comparable. The record keeps both and marks the
+   * seam, because dropping the earlier calls is how an agent's first probes
+   * used to vanish from a trail that claims to have no gaps.
+   */
+  boundary?: boolean;
 }
 
 /** One chunk of text that really left the tab, for the live feed. */

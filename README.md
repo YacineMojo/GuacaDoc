@@ -69,9 +69,22 @@ WebMCP needs a browser that exposes `document.modelContext`:
 - **ChatGPT's in-app browser** — supported out of the box.
 - **Google Chrome 149+** — enable `chrome://flags/#enable-webmcp-testing`.
 
-The header shows `webmcp live` when the API is present and `webmcp absent`
-otherwise. In either case the five tools are registered and callable from the
-console in the Agent tab.
+**The page must be origin-isolated.** WebMCP is exposed only to documents whose
+agent cluster is origin-keyed, which means the response has to carry
+`Origin-Agent-Cluster: ?1`. Without it `registerTool()` rejects with a
+`SecurityError` and an agent has nothing to call, which looks from the outside
+exactly like the policy layer doing nothing. The deployment configs
+(`nginx.conf.template`, `netlify.toml`) and the local production preview
+(`public/serve.json`, served by `npm start`) all send it. `next dev` cannot:
+response headers are unsupported alongside `output: export`, so test real agents
+against a built copy rather than the dev server.
+
+The header shows `webmcp live` when the API is present, and the tool count next
+to it is what the browser confirms it is holding rather than what the page
+offered. If any registration was refused, a strip under the header names the
+tool and the reason, because a page claiming five live tools above an empty
+record is the worst failure this project can have. In every case the five tools
+are registered locally and callable from the console in the Agent tab.
 
 Useful prompts once an agent is attached:
 

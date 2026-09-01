@@ -10,7 +10,12 @@ import {
   recordTransmission,
   recordViolation,
 } from "../store";
-import { registerWithBrowser, type McpToolResult } from "../webmcp/api";
+import {
+  registerWithBrowser,
+  type McpExecuteOptions,
+  type McpToolResult,
+  type RegistrationOutcome,
+} from "../webmcp/api";
 import { requestConfirmation } from "./confirm";
 import { scrubAndMeasure, truncateToFit } from "./measure";
 import type { ToolDefinition, ToolPolicy } from "./types";
@@ -48,8 +53,12 @@ function metricsField() {
 export function registerToolWithPolicy<Args extends Record<string, unknown>>(
   definition: ToolDefinition<Args>,
   policy: ToolPolicy,
-): void {
-  async function execute(rawArgs: Record<string, unknown>): Promise<McpToolResult> {
+  signal: AbortSignal,
+): Promise<RegistrationOutcome> {
+  async function execute(
+    rawArgs: Record<string, unknown>,
+    options?: McpExecuteOptions,
+  ): Promise<McpToolResult> {
     const args = (rawArgs ?? {}) as Args;
     const state = getState();
 
@@ -145,6 +154,25 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
       });
     }
 
+    // An agent that gave up mid-call never receives this answer: the runtime
+    // discards it. Billing it would spend the budget on bytes that did not
+    // leave, and the strip would show text nobody read.
+    if (options?.signal?.aborted) {
+      recordAudit({
+        tool: definition.name,
+        args,
+        decision: "cancelled",
+        bytes: 0,
+        detail: "the agent abandoned the call before the answer was served",
+      });
+      return pack({
+        ok: false,
+        reason: "aborted",
+        hint: "The call was cancelled before it returned. Nothing was disclosed and nothing was charged.",
+        ...metricsField(),
+      });
+    }
+
     const payload = result.value as Record<string, unknown>;
     if (result.billableBytes > 0) {
       recordTransmission({
@@ -165,12 +193,21 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
     return pack({ ok: true, ...payload, ...metricsField() });
   }
 
-  void registerWithBrowser({
-    name: definition.name,
-    description: definition.description,
-    inputSchema: definition.inputSchema,
-    execute,
-  });
+  return registerWithBrowser(
+    {
+      name: definition.name,
+      description: definition.description,
+      inputSchema: definition.inputSchema,
+      // Hints for the agent's own planning. They describe the tool; they do
+      // not enforce anything, which is the wrapper's job either way.
+      annotations: {
+        readOnlyHint: policy.access === "read",
+        untrustedContentHint: true,
+      },
+      execute,
+    },
+    signal,
+  );
 }
 
 function summarizeArgs(tool: string, args: Record<string, unknown>): string {

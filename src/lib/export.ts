@@ -37,15 +37,19 @@ export function buildAuditExport() {
       alias_forms: e.aliases.length,
       detected_by: e.source,
     })),
-    calls: state.audit.map((event) => ({
-      seq: event.seq,
-      at: event.ts,
-      tool: event.tool,
-      arguments: event.args,
-      decision: event.decision,
-      billable_bytes: event.bytes,
-      detail: event.detail ?? null,
-    })),
+    calls: state.audit.map((event) =>
+      event.boundary
+        ? { seq: event.seq, at: event.ts, boundary: event.tool, detail: event.detail ?? null }
+        : {
+            seq: event.seq,
+            at: event.ts,
+            tool: event.tool,
+            arguments: event.args,
+            decision: event.decision,
+            billable_bytes: event.bytes,
+            detail: event.detail ?? null,
+          },
+    ),
     transmissions: state.transmitted.map((chunk) => ({
       seq: chunk.seq,
       at: chunk.ts,
@@ -55,6 +59,10 @@ export function buildAuditExport() {
     })),
     findings: state.findings,
     blocked_runtime_attempts: state.violations,
+    // What the browser confirmed it was holding. A record of refusals with no
+    // registered tools behind it means the agent never reached the policy
+    // layer at all, and a reviewer needs to be able to tell the difference.
+    registered_tools: state.browserTools,
   };
 }
 

@@ -80,3 +80,18 @@ rather than pixel offset, since substitution changes how long the text is.
   light. The strip kept the behaviour and dropped the costume.
 - **Numbered markers everywhere.** Kept in exactly one place, the three steps
   on the front page, because that is a real sequence.
+
+## A reveal is a moment, not a state
+
+The key panel and the decoded answer are the two places where a real name is
+deliberately put back on screen. Both are shown by a person, on purpose, and
+both used to stay shown until that person remembered to put them away.
+
+They now expire: a countdown, plus the window losing focus, plus the page
+becoming hidden. The remaining seconds are on the button, because a secret that
+vanishes without warning teaches people to reveal it again straight away and
+leave it up, which is worse than never having hidden it.
+
+What is never thrown away is what the user typed. The pasted answer is tokens,
+it is not sensitive, and destroying someone's input to protect something they
+restore with one click would trade a real loss for a cosmetic gain.

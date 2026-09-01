@@ -28,6 +28,20 @@ export interface AppState {
   transmitted: TransmittedChunk[];
   findings: Finding[];
   toolsRegistered: boolean;
+  /**
+   * What the browser actually holds, as opposed to what was offered to it.
+   *
+   * null means no WebMCP in this browser. Anything else is the outcome of the
+   * last registration pass, verified with getTools() where the browser has it.
+   * The interface reads this rather than the local registry, so it cannot
+   * announce tools an agent has no way to call.
+   */
+  browserTools: {
+    accepted: string[];
+    rejected: Array<{ name: string; reason: string }>;
+    /** True when getTools() answered, rather than us trusting our own calls. */
+    verified: boolean;
+  } | null;
   /** Blocked attempts to reach the network or persistent storage. */
   violations: Array<{ ts: string; api: string; detail: string }>;
   /** Text currently selected in the document, for the marking bar. */
@@ -52,6 +66,7 @@ const initialState: AppState = {
   transmitted: [],
   findings: [],
   toolsRegistered: false,
+  browserTools: null,
   violations: [],
   selection: null,
   notice: null,
@@ -79,18 +94,62 @@ export function subscribe(listener: () => void): () => void {
 /**
  * Wipes the document, the entities and every trace of the session.
  *
- * Two things survive, because neither is session data: the budget the user
- * chose, and the fact that the tools are registered with the browser. Clearing
- * the latter would tell the interface the tools are gone while they are still
- * live in document.modelContext.
+ * This is the Clear button and nothing else: a deliberate delete, where losing
+ * the record is the point. Loading a document goes through startDocument(),
+ * which keeps the record.
+ *
+ * Three things survive, because none of them is session data: the budget the
+ * user chose, and the two facts about registration. Clearing those would tell
+ * the interface the tools are gone while they are still live in
+ * document.modelContext.
  */
 export function resetSession() {
+  const pending = state.pendingConfirmation;
   state = {
     ...initialState,
     budgetRatio: state.budgetRatio,
     toolsRegistered: state.toolsRegistered,
+    browserTools: state.browserTools,
   };
   for (const l of listeners) l();
+  // A tool call suspended on the modal would otherwise never settle, and a
+  // call that never returns is a call that never reaches the record.
+  pending?.resolve(false);
+}
+
+/**
+ * Starts a session on a new document while keeping the record of every call
+ * already answered.
+ *
+ * The budget, the transmitted feed and the token registry all restart: they
+ * describe one document and mean nothing across two. The audit trail does not
+ * restart. An agent attached to this tab typically probes the tools before the
+ * user has opened anything, and wiping those calls on load is what used to
+ * make them disappear from a record advertised as gapless. The seam is marked
+ * instead.
+ */
+export function startDocument(doc: LoadedDocument) {
+  const pending = state.pendingConfirmation;
+  const audit = state.audit;
+  state = {
+    ...initialState,
+    budgetRatio: state.budgetRatio,
+    toolsRegistered: state.toolsRegistered,
+    browserTools: state.browserTools,
+    audit,
+  };
+  for (const l of listeners) l();
+  pending?.resolve(false);
+  if (audit.length > 0) {
+    recordAudit({
+      tool: doc.name,
+      args: {},
+      decision: "allowed",
+      bytes: 0,
+      detail: "document opened — budget and tokens restart here",
+      boundary: true,
+    });
+  }
 }
 
 // --- derived values -------------------------------------------------------
@@ -125,6 +184,7 @@ export function recordAudit(event: {
   decision: PolicyDecision;
   bytes: number;
   detail?: string;
+  boundary?: boolean;
 }): AuditEvent {
   const entry: AuditEvent = {
     seq: ++auditSeq,

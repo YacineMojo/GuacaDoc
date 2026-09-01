@@ -4,18 +4,20 @@ import { detectEntities, makeEntity, resetEntitySeq } from "./detect/index";
 import { loadDocument, loadFromString } from "./extract/index";
 import { resetTokenRegistry } from "./tokens";
 import { DEMO_DOCUMENT, DEMO_DOCUMENT_NAME } from "./demo";
-import { getState, resetSession, setState } from "./store";
+import { getState, setState, startDocument } from "./store";
 import type { EntityType, LoadedDocument } from "./types";
 
 /**
- * Loading a document resets the whole session, tokens included.
+ * Loading a document restarts the session, tokens included.
  *
  * Carrying a token registry across documents would let PERSON_01 mean two
  * different people in one audit trail, which would make the trail useless as
- * a record.
+ * a record. The record of calls itself survives, marked with a boundary: an
+ * agent that probed the tools before the file was open was answered, and a
+ * trail that claims to have no gaps cannot drop those answers.
  */
 function install(doc: LoadedDocument) {
-  resetSession();
+  startDocument(doc);
   resetTokenRegistry();
   resetEntitySeq();
   setState({ doc, entities: detectEntities(doc.text) });

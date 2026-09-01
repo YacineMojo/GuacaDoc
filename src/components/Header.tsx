@@ -18,6 +18,7 @@ export function Header({
   onTab,
   entitiesOpen,
   onToggleEntities,
+  unseenCount,
 }: {
   state: AppState;
   webmcp: boolean;
@@ -26,8 +27,14 @@ export function Header({
   onTab: (tab: string) => void;
   entitiesOpen: boolean;
   onToggleEntities: () => void;
+  /** Calls answered since the record was last on screen. */
+  unseenCount: number;
 }) {
   const tabs = ["Document", "Agent"];
+  // The dot answers one question: can an agent call anything? A page reporting
+  // "live" while the browser holds none of these tools is the exact failure
+  // this indicator exists to make impossible.
+  const reachable = webmcp && toolCount > 0;
 
   return (
     <header className="z-30 shrink-0">
@@ -42,12 +49,14 @@ export function Header({
         <div
           className="flex items-center gap-1.5"
           title={
-            webmcp
-              ? "This browser exposes document.modelContext, so an agent can call the tools directly. It can also read what is on screen."
-              : "No WebMCP in this browser. The tools are registered locally and the console calls them the same way."
+            reachable
+              ? "This browser exposes document.modelContext and is holding these tools, so an agent can call them directly. It can also read what is on screen."
+              : webmcp
+                ? "This browser exposes document.modelContext but is holding none of these tools, so an agent has nothing to call and its work cannot appear in the record."
+                : "No WebMCP in this browser. The tools are registered locally and the console calls them the same way."
           }
         >
-          <span className={`block h-1.5 w-1.5 rounded-full ${webmcp ? "bg-guac" : "bg-line"}`} />
+          <span className={`block h-1.5 w-1.5 rounded-full ${reachable ? "bg-guac" : "bg-line"}`} />
           <span className="label">
             webmcp {webmcp ? "live" : "absent"} · {toolCount} tools
           </span>
@@ -90,11 +99,24 @@ export function Header({
                 <button
                   key={name}
                   onClick={() => onTab(name)}
-                  className={`border-r border-line px-3.5 py-1.5 font-display text-[0.6875rem] font-semibold tracking-[0.08em] uppercase last:border-r-0 ${
+                  className={`flex items-center gap-1.5 border-r border-line px-3.5 py-1.5 font-display text-[0.6875rem] font-semibold tracking-[0.08em] uppercase last:border-r-0 ${
                     tab === name ? "bg-rind text-white" : "bg-white text-text-faint hover:text-text"
                   }`}
                 >
                   {name}
+                  {/*
+                    The count sits on the tab that holds the record, so the way
+                    to clear it is to go and read it. It is never a red dot:
+                    a call the policy answered is the system working.
+                  */}
+                  {name === "Agent" && unseenCount > 0 && tab !== "Agent" && (
+                    <span
+                      title={`${unseenCount} call${unseenCount > 1 ? "s" : ""} you have not looked at`}
+                      className="mono rounded-full bg-guac px-1.5 text-[0.625rem] leading-[1.4] font-normal tracking-normal text-white"
+                    >
+                      {unseenCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>

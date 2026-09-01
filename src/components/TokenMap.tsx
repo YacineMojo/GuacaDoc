@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { TYPE_LABELS } from "@/lib/detect/index";
 import type { Entity } from "@/lib/types";
+import { useAutoHide } from "@/lib/useAutoHide";
 import { Button, Empty, Field } from "./ui";
 
 /**
@@ -13,16 +14,16 @@ import { Button, Empty, Field } from "./ui";
  * the substitution just took away, so the values are not rendered at all until
  * you ask for them, and hiding is a real absence rather than a CSS blur.
  *
- * Revealing is per session and resets whenever this panel unmounts.
+ * Revealing is bounded by useAutoHide: it lasts under a minute, and it ends
+ * the moment the window loses focus or the page is hidden. Leaving the key up
+ * on a tab nobody is watching is the only way this panel can hurt you.
  */
 const MASK = "••••••••";
+const REVEAL_SECONDS = 45;
 
 export function TokenMap({ entities, agentAttached }: { entities: Entity[]; agentAttached: boolean }) {
   const [query, setQuery] = useState("");
-  const [revealed, setRevealed] = useState(false);
-
-  // Leaving the tab puts the key away again.
-  useEffect(() => () => setRevealed(false), []);
+  const { revealed, remaining, reveal, hide } = useAutoHide(REVEAL_SECONDS);
 
   const pseudonymized = entities.filter((e) => e.level === "pseudonymized");
   const withheld = entities.filter((e) => e.level === "blocked");
@@ -46,16 +47,25 @@ export function TokenMap({ entities, agentAttached }: { entities: Entity[]; agen
           <div className="min-w-0 flex-1">
             <Field value={query} onChange={setQuery} placeholder="Find a token" />
           </div>
-          <Button size="sm" tone={revealed ? "stone" : "neutral"} onClick={() => setRevealed((r) => !r)}>
-            {revealed ? "Hide" : "Reveal"}
+          <Button
+            size="sm"
+            tone={revealed ? "stone" : "neutral"}
+            onClick={revealed ? hide : reveal}
+            title={
+              revealed
+                ? "Hide now. It hides itself anyway when the countdown ends or the window loses focus."
+                : `Show the real values for ${REVEAL_SECONDS} seconds`
+            }
+          >
+            {revealed ? `Hide · ${remaining}s` : "Reveal"}
           </Button>
         </div>
 
         <p className="text-[0.6875rem] leading-relaxed text-text-faint">
           {revealed
             ? agentAttached
-              ? "An agent is attached to this tab and can read what is on screen. Hide the key when you are done."
-              : "Real values are on screen. Hide them again when you are done."
+              ? `An agent is attached to this tab and can read what is on screen. This hides itself in ${remaining}s, or the moment you look away.`
+              : `Real values are on screen. This hides itself in ${remaining}s, or the moment you look away.`
             : "Values are kept off the page so nothing reading this tab can lift them."}
         </p>
       </div>
