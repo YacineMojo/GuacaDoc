@@ -73,11 +73,29 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
     }
 
     if (policy.requireConfirmation) {
-      const approved = await requestConfirmation(
+      const outcome = await requestConfirmation(
         definition.name,
         summarizeArgs(definition.name, args),
       );
-      if (!approved) {
+      // Nobody was asked, so nobody declined. Saying otherwise would put a
+      // refusal in the record that no person ever made, and would tell the
+      // agent to give up on an action the user has not seen.
+      if (outcome === "busy") {
+        recordAudit({
+          tool: definition.name,
+          args,
+          decision: "denied",
+          bytes: 0,
+          detail: "another approval was already open — nobody was asked",
+        });
+        return pack({
+          ok: false,
+          reason: "confirmation_busy",
+          hint: "Another action is waiting for the user's approval. Nothing was decided about this one. Retry it once the earlier action has been answered, and send write calls one at a time.",
+          ...metricsField(),
+        });
+      }
+      if (outcome === "declined") {
         recordAudit({ tool: definition.name, args, decision: "cancelled", bytes: 0, detail: "user declined" });
         return pack({
           ok: false,

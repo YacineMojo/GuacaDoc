@@ -224,8 +224,9 @@ informational; the application never relies on how it is interpreted.
 
 ```bash
 npm install
-npm run verify   # asserts detection, token stability, redaction, the search
-                 # oracle closure, byte accounting and truncation
+npm run verify   # asserts detection, token stability, redaction, sectioning,
+                 # the search oracle closure, byte accounting, truncation and
+                 # consent
 ```
 
 `scripts/verify-core.ts` is the README's claims written as assertions. It runs
@@ -235,7 +236,8 @@ For the network and storage claims, open the deployed app, open DevTools, and
 watch the Network tab while you load a document and run the agent console.
 Production builds also install runtime traps that record any attempt to reach
 `fetch`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, `localStorage` or
-`IndexedDB` and surface it as a red banner in the interface.
+`IndexedDB` and surface it as a banner in the interface, in the brown of the
+stone. There is no red anywhere in this app: a refusal is the policy working.
 
 ## Running locally
 

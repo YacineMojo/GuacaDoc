@@ -29,7 +29,7 @@ There is no backend. `next.config.ts` sets `output: "export"`, so the build
 product is `out/` — HTML, JS, CSS, fonts and one pdf.js worker. There are no API
 routes, no server actions and no middleware in the repo.
 
-**Current state:** builds, typechecks clean (`tsc --noEmit`), and 28 assertions
+**Current state:** builds, typechecks clean (`tsc --noEmit`), and 37 assertions
 over the core layer pass (`npm run verify`).
 
 ---
@@ -130,6 +130,22 @@ A document with no headings becomes one `Document` section, split if long.
 
 Sections are the unit of the whole tool surface: small and named is what lets a
 useful analysis fit in a tight byte budget.
+
+Three guards keep body text from being promoted to a heading, all three paid
+for by a real agent run against the sample (see §9):
+
+- the line must open with a capital or a digit, which rejects the wrapped
+  cross-reference `clause 1. Kaltbrunn served notice of a rate revision…`;
+- the numeral must end where a numeral ends, because `[\dIVXLC]+` under `/i`
+  matches the `i` of `is`, which read `clause is likely unenforceable…` as
+  clause I;
+- an all-caps line that is mostly digits is data, not a title, which stops an
+  account number on its own line from becoming one.
+
+This matters beyond tidiness. `get_document_outline` serves titles without
+charging for them, so a mis-promoted title is body text moving through the free
+channel. The three false positives were putting 152 B of contract prose out at
+zero billed bytes.
 
 ### 4.3 Detection — `src/lib/detect/`
 
@@ -273,7 +289,10 @@ reason plus the two headers WebMCP needs.
    called on the browser API where it exists (it only brings the tab forward),
    then the call **suspends on an open promise** held by the modal. No timeout,
    no default answer. Declined → `cancelled`, and the agent gets
-   `declined_by_user` with "do not retry".
+   `declined_by_user` with "do not retry". A second write arriving while a
+   prompt is already open → `denied` with `confirmation_busy`, never
+   `declined_by_user`: only one modal can be on screen, agents batch their
+   calls, and reporting a refusal nobody made would put a lie in the record.
 3. **Budget already at zero** on a read → `budget_exceeded`, nothing runs.
 4. **Handler runs.** A throw becomes `error` with the message, not an exception
    crossing the boundary.
@@ -345,8 +364,8 @@ Bytes are UTF-8 (`TextEncoder`), not string length.
 21. Structural keys and per-tool declared `freeKeys` exempt from billing;
     everything else billed by default.
 22. Refusals returned as structured, actionable answers — `budget_exhausted`,
-    `budget_exceeded`, `declined_by_user`, `aborted`, `no_document`,
-    `tool_error` — never thrown.
+    `budget_exceeded`, `declined_by_user`, `confirmation_busy`, `aborted`,
+    `no_document`, `tool_error` — never thrown.
 23. Consent modal for write tools that suspends the call, closes on Escape as a
     decline, and resolves to `false` if the session is cleared underneath it.
 24. Disclosure meter drawn as a halved avocado: the flesh fills with budget
@@ -476,12 +495,13 @@ written to disk except a file the user explicitly downloads.
 
 ## 9. Verification
 
-`npm run verify` (`scripts/verify-core.ts`) turns the README's claims into 28
+`npm run verify` (`scripts/verify-core.ts`) turns the README's claims into 37
 assertions over the real modules and the bundled sample, and exits non-zero on
-failure. Current run: **all 28 pass.**
+failure. Current run: **all 37 pass.**
 
 Grouped: detection (9), token stability (2), redaction (7), decoding (2),
-search (4), measurement and budget (3), and a leak sweep over every section (1).
+sectioning (4), search (3), measurement and budget (3), a leak sweep over every
+section (1), and consent (6).
 
 The ones that matter most:
 
@@ -495,12 +515,32 @@ The ones that matter most:
 - `structural keys are not billed` / `billed text is the redacted text` — the
   accounting measures the redacted output, not the source.
 - `oversized results are truncated to the cap` — 9 000 B into a 1 024 B cap.
+- `a concurrent write is reported busy, never declined` — the record does not
+  claim a person refused something no person was shown.
+- `body text is never promoted to a heading` — 14 lines of heading grammar,
+  because a mis-promoted title travels through the outline's free channel.
 
 Measured on the bundled sample (`fictional-services-agreement.md`, 3 784 B,
-13 sections): **38 entities** — 10 dates, 6 people, 5 amounts, 4 organizations,
-3 emails, 3 references, 2 locations, 2 phones, 1 IBAN, 1 card, 1 long id. Two
-default to withheld (IBAN, card), 36 to token. At the default 30 % budget an
-agent gets 1 135 bytes for the session.
+10 sections, 156 B of titles): **38 entities** — 10 dates, 6 people, 5 amounts,
+4 organizations, 3 emails, 3 references, 2 locations, 2 phones, 1 IBAN, 1 card,
+1 long id. Two default to withheld (IBAN, card), 36 to token. At the default
+30 % budget an agent gets 1 135 bytes for the session.
+
+### Where the last two fixes came from
+
+Both were found by pointing a real agent at the deployed app — Gemini 3.6 Flash
+through Chrome's WebMCP testing extension — rather than by reading the code.
+The run made seven calls (outline, three searches, two sections, one write) and
+proved three things that had never been exercised outside the in-page console:
+substitution held in the unbilled channel (the sample's account-number line had
+become a section title, and still went out as `IBAN [BLOCKED_IBAN]`), the
+no-oracle `hint` actually steered the model (two empty searches, then a pivot
+from `revenue` to `payment`), and the consent modal suspended a call across the
+extension boundary.
+
+It also showed that the extension batches tool calls, two per turn, twice. That
+is what turned the concurrent-confirmation path from a theoretical edge case
+into the ordinary one.
 
 `npx tsx scripts/dump-entities.ts` prints every entity with its token, level,
 occurrence count and aliases.
@@ -558,7 +598,7 @@ src/lib/
   webmcp/{api,tools}.ts
 scripts/
   copy-pdf-worker.mjs   vendors the pdf.js worker to our own origin
-  verify-core.ts        28 assertions, npm run verify
+  verify-core.ts        37 assertions, npm run verify
   dump-entities.ts      entity table for the sample
 ```
 

@@ -34,11 +34,29 @@ function detectHeadings(text: string): Heading[] {
       continue;
     }
 
-    // "Article 5 - Liability", "3.2 Payment terms", "SECTION IV"
-    const numbered = /^((?:article|section|clause|annex|annexe|appendix|chapter|partie|chapitre)\s+[\dIVXLC]+[.)]?|[\d]+(?:\.[\d]+)*[.)])\s*[-–—:]?\s*(.{0,90})$/i.exec(
+    /*
+     * "Article 5 - Liability", "3.2 Payment terms", "SECTION IV".
+     *
+     * Two guards, both of them paid for by a real agent run. The numeral has
+     * to end where a numeral ends, because `[\dIVXLC]+` under /i matches the
+     * "i" of "is", which turned "clause is likely unenforceable against …"
+     * into a title. And a heading opens with a capital or a digit, which
+     * rejects the cross-reference a wrapped line starts with: "clause 1.
+     * Kaltbrunn served notice of a rate revision" is the middle of a sentence,
+     * not a section.
+     *
+     * That second test sits outside the pattern on purpose. `(?=[\p{Lu}])`
+     * inside it does nothing: under /i, case folding makes `\p{Lu}` match a
+     * lowercase letter too, so the guard has to be applied to a pattern that
+     * is not case-insensitive.
+     *
+     * Both mattered more than they look. A mis-promoted title is body text
+     * delivered through the outline's free channel.
+     */
+    const numbered = /^((?:article|section|clause|annex|annexe|appendix|chapter|partie|chapitre)\s+(?:\d+|[IVXLC]{1,7})(?![\p{L}])[.)]?|\d+(?:\.\d+)*[.)])\s*[-–—:]?\s*(.{0,90})$/iu.exec(
       trimmed,
     );
-    if (numbered && trimmed.length < 110) {
+    if (numbered && trimmed.length < 110 && /^[\p{Lu}\d]/u.test(trimmed)) {
       const depth = (numbered[1].match(/\./g) ?? []).length + 1;
       headings.push({
         index: start,
@@ -49,12 +67,17 @@ function detectHeadings(text: string): Heading[] {
       continue;
     }
 
-    // A short all-caps line with no terminal punctuation reads as a heading.
+    // A short all-caps line with no terminal punctuation reads as a heading,
+    // unless it is mostly digits: "IBAN GB29 NWBK 6016 1331 9268 19" sits on
+    // its own line, shouts like a title, and is an account number. A line of
+    // data promoted to a title is the worst case for the outline, which serves
+    // titles without charging for them.
     if (
       trimmed.length <= 70 &&
       trimmed === trimmed.toUpperCase() &&
       /[\p{L}]/u.test(trimmed) &&
-      !/[.;!?]$/.test(trimmed)
+      !/[.;!?]$/.test(trimmed) &&
+      trimmed.replace(/[^\d]/g, "").length < 5
     ) {
       headings.push({ index: start, end: start + line.length, title: trimmed, level: 1 });
     }
