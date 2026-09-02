@@ -3,7 +3,7 @@ export interface ToolPolicy {
   /** Read tools return content. Write tools change state and need consent. */
   access: "read" | "write";
   /**
-   * Hard ceiling on billable bytes for one call. Responses above it are
+   * Hard ceiling on served bytes for one call. Responses above it are
    * truncated rather than refused, so the agent still gets something usable.
    */
   maxBytesPerCall: number;
@@ -12,12 +12,13 @@ export interface ToolPolicy {
   /** Route through requestUserInteraction() before doing anything. */
   requireConfirmation: boolean;
   /**
-   * Extra response keys this tool may return without spending budget.
+   * Extra response keys this tool may return without being counted as
+   * document text that left the tab.
    *
    * Only for fields that are structure rather than content: section titles in
    * the outline, or the query string echoed back to the agent that sent it.
    * Declared per tool, in the open, so the exemption is auditable. Everything
-   * not listed here or in the global structural set is billed.
+   * not listed here or in the global structural set is counted as served.
    */
   freeKeys?: string[];
 }

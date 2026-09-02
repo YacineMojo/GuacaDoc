@@ -1,9 +1,8 @@
 "use client";
 
-import { setBudgetRatio } from "@/lib/actions";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { downloadAuditLog } from "@/lib/export";
-import { formatBytes, formatPercent } from "@/lib/format";
+import { formatBytes } from "@/lib/format";
 import { resetSession } from "@/lib/store";
 import type { AppState } from "@/lib/store";
 import { GuacaMark } from "./Avocado";
@@ -72,27 +71,6 @@ export function Header({
         )}
 
         <div className="ml-auto flex flex-wrap items-center gap-4">
-          {state.doc && (
-            <label
-              className="flex items-center gap-2"
-              title="Share of the file an agent may consume this session"
-            >
-              <span className="label">Budget</span>
-              <input
-                type="range"
-                min={5}
-                max={100}
-                step={5}
-                value={Math.round(state.budgetRatio * 100)}
-                onChange={(e) => setBudgetRatio(Number(e.target.value) / 100)}
-                className="w-24 accent-guac-dark"
-              />
-              <span className="mono w-9 text-[0.6875rem] tabular-nums">
-                {formatPercent(state.budgetRatio, 0)}
-              </span>
-            </label>
-          )}
-
           {state.doc && (
             <nav className="flex overflow-hidden rounded-[4px] border border-line">
               {tabs.map((name) => (

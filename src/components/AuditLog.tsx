@@ -12,7 +12,6 @@ import { Empty } from "./ui";
 const DECISION_STYLE: Record<PolicyDecision, string> = {
   allowed: "text-guac-dark border-guac/45 bg-guac-wash",
   truncated: "text-leaf border-leaf/35 bg-flesh/45",
-  budget_exceeded: "text-stone-text border-stone bg-stone",
   denied: "text-stone-text border-stone bg-stone",
   cancelled: "text-stone border-stone-soft bg-stone-soft/40",
   error: "text-stone-text border-stone bg-stone",
@@ -27,9 +26,9 @@ export function AuditLog({ audit }: { audit: AuditEvent[] }) {
     <ul className="mono divide-y divide-line-soft text-[0.6875rem]">
       {[...audit].reverse().map((event) => {
         if (event.boundary) {
-          // Not a call: the seam where a document was opened and the budget
-          // and tokens restarted. Calls either side of it are not comparable,
-          // and hiding the seam would be worse than showing it.
+          // Not a call: the seam where a document was opened and the byte
+          // count and tokens restarted. Calls either side of it are not
+          // comparable, and hiding the seam would be worse than showing it.
           return (
             <li key={event.seq} className="flex items-center gap-2 bg-guac-wash px-3 py-1.5">
               <span className="text-text-faint tabular-nums">

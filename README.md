@@ -4,9 +4,8 @@
 
 A file is loaded into a browser tab and never leaves it. An AI agent reaches it
 only through WebMCP tools, and every answer those tools return passes through a
-policy layer first: identifying values are replaced by stable tokens, a byte
-budget caps how much can ever be disclosed, and a live strip shows exactly what
-went out.
+policy layer first: identifying values are replaced by stable tokens, bank
+details are withheld outright, and a live strip shows exactly what went out.
 
 The name is the model. An avocado has flesh and a stone. Guacamole keeps the
 flesh, loses the stone, and cannot be turned back into an avocado. That is what
@@ -48,13 +47,13 @@ type. It is a generic disclosure-control surface for agents.
    address behind a single token.
 3. **Agent** tab: press **Sample investigation**. Four tool calls run, the
    strip across the top prints what left the tab, and the record logs each call
-   with its byte cost. The meter is a halved avocado: the flesh fills as the
-   budget is spent, and the stone at its centre carries the count of values
+   with the bytes it served. The meter is a halved avocado: the flesh fills as
+   the file is served, and the stone at its centre carries the count of values
    that are never served.
-4. Press **Spend the budget**. The agent keeps reading sections until the
-   policy refuses one. The refusal is printed on the strip and in the record in
-   the brown of the stone, and the tool returns a structured `budget_exceeded`
-   answer rather than an exception.
+4. Press **Read every section**. The agent takes the whole document, one
+   section at a time, and nothing stops it. That is the demonstration: read the
+   strip and the key, and see that it has the entire contract and not one
+   name.
 5. Paste an answer containing tokens into **Read an answer** to put the real
    names back, locally.
 
@@ -132,9 +131,10 @@ These are real limits, and they are stated here rather than discovered later.
   or a partial mention can escape substitution. The editor exists because the
   detector is fallible: review the marks before letting an agent read.
 - **Substitution shrinks the exposed surface, it does not remove it.** An agent
-  asking many narrow, well-chosen questions can reconstruct a meaningful part
-  of the document, up to the budget. The budget is what bounds that, not the
-  tokens.
+  asking enough questions can reconstruct the whole document, and nothing here
+  stops it: rationing a text whose names are already gone protects nobody. What
+  it reconstructs is the pseudonymized version, and the record says how much of
+  it left.
 - **A pseudonym protects the name, not always the person.** An entity with
   distinctive behaviour can remain identifiable by inference. `PERSON_01` who
   signs every contract and lives at `[LOCATION_02]` is not anonymous in any
@@ -167,18 +167,17 @@ detect (regex + capitalization heuristic) ────┘        (tab memory onl
 agent ──► document.modelContext ──► registerToolWithPolicy
                                         │
                                         ├─ 1. confirmation, for write tools
-                                        ├─ 2. budget check
-                                        ├─ 3. run the handler
-                                        ├─ 4. scrub every string in the result
-                                        ├─ 5. count billable bytes
-                                        ├─ 6. refuse, truncate, or allow
-                                        └─ 7. write the audit line
+                                        ├─ 2. run the handler
+                                        ├─ 3. scrub every string in the result
+                                        ├─ 4. count the bytes that are leaving
+                                        ├─ 5. truncate if over the per-call cap
+                                        └─ 6. write the audit line
 ```
 
 **The wrapper is the only way a tool becomes reachable.** Handlers do not talk
 to the agent; `registerToolWithPolicy` does. A handler that returned the entire
-document would still be scrubbed and would still be refused for exceeding the
-budget, because scrubbing is not something a handler opts into.
+document would still come back substituted and would still be on the record,
+because scrubbing is not something a handler opts into.
 
 **Everything detected is protected by default**, with bank details withheld
 outright. Dates and amounts are usually needed for the analysis and are one
@@ -209,16 +208,17 @@ Five, deliberately. Descriptions are one plain sentence each; they ask for
 restraint but they enforce nothing, and the app never depends on how a model
 reads them.
 
-| Tool | What it returns | Budget |
+| Tool | What it returns | Counted as served |
 |---|---|---|
-| `get_document_outline` | Section ids, depth, titles, sizes. No body text. | Free: structure, not content |
-| `search_document` | Matching section ids and short excerpts, from the redacted text | Excerpts are billed |
-| `get_section` | One section, after substitution | Billed, capped per call |
-| `get_metrics` | Budget spent, remaining, calls made | Free |
-| `add_finding` | Records one observation; requires user approval | Free |
+| `get_document_outline` | Section ids, depth, titles, sizes. No body text. | No: structure, not content |
+| `search_document` | Matching section ids and short excerpts, from the redacted text | The excerpts |
+| `get_section` | One section, after substitution | Yes, capped per call at 4 096 B |
+| `get_metrics` | Bytes served, share of the file, calls made | No |
+| `add_finding` | Records one observation; requires user approval | No |
 
-Every answer also carries a `_metrics` field so an agent can pace itself. It is
-informational; the application never relies on how it is interpreted.
+There is no session quota. The per-call cap is a response size, not an
+allowance: a result above it is truncated rather than refused, so the agent
+still gets something usable and can ask for the rest.
 
 ## Verify the claims yourself
 

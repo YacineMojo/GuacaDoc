@@ -16,7 +16,7 @@ import { Strip } from "@/components/Strip";
 import { TokenMap } from "@/components/TokenMap";
 import { Panel } from "@/components/ui";
 import { installGuards } from "@/lib/guards";
-import { budgetBytes, consumedRatio, documentConsumedRatio } from "@/lib/store";
+import { documentServedRatio } from "@/lib/store";
 import { useDocumentSelection } from "@/lib/useSelection";
 import { useStore } from "@/lib/useStore";
 import type { AuditEvent } from "@/lib/types";
@@ -188,8 +188,9 @@ function Start({ audit }: { audit: AuditEvent[] }) {
             before an agent reads anything.
           </li>
           <li>
-            Substitution shrinks the exposed surface, it does not remove it. An agent asking many
-            narrow questions can still reconstruct part of the document, up to the budget you set.
+            Substitution shrinks the exposed surface, it does not remove it. An agent asking
+            enough questions can reconstruct the whole document, and nothing here stops it. What it
+            reconstructs is this pseudonymized version, and the record says how much of it left.
           </li>
           <li>
             A pseudonym protects the name, not necessarily the person. Someone with distinctive
@@ -264,10 +265,9 @@ function AgentView({
       <div className="grid shrink-0 grid-cols-1 gap-px bg-line lg:grid-cols-[23rem_1fr]">
         <div className="bg-white">
           <Meter
-            usedRatio={consumedRatio(state)}
-            bytesSpent={state.bytesSpent}
-            budget={budgetBytes(state)}
-            documentRatio={documentConsumedRatio(state)}
+            servedRatio={documentServedRatio(state)}
+            bytesServed={state.bytesServed}
+            documentBytes={state.doc?.byteLength ?? 0}
             withheldCount={withheld}
           />
         </div>
@@ -323,11 +323,11 @@ function AgentView({
                 ))}
               </ul>
               <div className="min-h-0 flex-1">
-                <DecodePanel entities={state.entities} />
+                <DecodePanel entities={state.entities} agentAttached={agentAttached} />
               </div>
             </div>
           ) : (
-            <DecodePanel entities={state.entities} />
+            <DecodePanel entities={state.entities} agentAttached={agentAttached} />
           )}
         </Panel>
       </div>

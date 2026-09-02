@@ -2,9 +2,6 @@
 
 import { buildRedactor } from "../redact";
 import {
-  budgetBytes,
-  bytesRemaining,
-  documentConsumedRatio,
   getState,
   recordAudit,
   recordTransmission,
@@ -24,30 +21,15 @@ import type { ToolDefinition, ToolPolicy } from "./types";
  * The one place a tool becomes reachable by an agent.
  *
  * Nothing registers a tool directly. Every handler is wrapped here, and the
- * wrapper is what applies substitution, counts bytes, enforces the budget,
- * asks for consent on writes and writes the audit line. A handler that
- * returned the entire document would still be scrubbed and would still be
- * refused for going over budget, because the handler is not the thing that
- * talks to the agent: this function is.
+ * wrapper is what applies substitution, counts what left, asks for consent on
+ * writes and writes the audit line. A handler that returned the entire
+ * document would still come back substituted and would still be on the
+ * record, because the handler is not the thing that talks to the agent: this
+ * function is.
  */
 
 function pack(payload: unknown): McpToolResult {
   return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
-}
-
-/** Attached to every answer so the agent can pace itself. Never billed. */
-function metricsField() {
-  const state = getState();
-  const total = budgetBytes(state);
-  return {
-    _metrics: {
-      budget_bytes: total,
-      bytes_used: state.bytesSpent,
-      bytes_remaining: bytesRemaining(state),
-      budget_used_ratio: total > 0 ? Number((state.bytesSpent / total).toFixed(4)) : 0,
-      document_consumed_ratio: Number(documentConsumedRatio(state).toFixed(4)),
-    },
-  };
 }
 
 export function registerToolWithPolicy<Args extends Record<string, unknown>>(
@@ -68,7 +50,6 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
         ok: false,
         reason: "no_document",
         hint: "The user has not loaded a document yet.",
-        ...metricsField(),
       });
     }
 
@@ -92,7 +73,6 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
           ok: false,
           reason: "confirmation_busy",
           hint: "Another action is waiting for the user's approval. Nothing was decided about this one. Retry it once the earlier action has been answered, and send write calls one at a time.",
-          ...metricsField(),
         });
       }
       if (outcome === "declined") {
@@ -101,26 +81,8 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
           ok: false,
           reason: "declined_by_user",
           hint: "The user declined this action. Do not retry it.",
-          ...metricsField(),
         });
       }
-    }
-
-    const remainingBefore = bytesRemaining();
-    if (policy.access === "read" && remainingBefore <= 0) {
-      recordAudit({
-        tool: definition.name,
-        args,
-        decision: "budget_exceeded",
-        bytes: 0,
-        detail: "budget already exhausted",
-      });
-      return pack({
-        ok: false,
-        reason: "budget_exhausted",
-        hint: "The disclosure budget for this session is spent. No further document content can be returned. Answer from what you already have, or ask the user to raise the budget.",
-        ...metricsField(),
-      });
     }
 
     let raw: unknown;
@@ -129,7 +91,7 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       recordAudit({ tool: definition.name, args, decision: "error", bytes: 0, detail });
-      return pack({ ok: false, reason: "tool_error", hint: detail, ...metricsField() });
+      return pack({ ok: false, reason: "tool_error", hint: detail });
     }
 
     // Substitution is applied here, on the way out, to the whole result tree.
@@ -154,27 +116,9 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
       );
     }
 
-    if (result.billableBytes > bytesRemaining()) {
-      recordAudit({
-        tool: definition.name,
-        args,
-        decision: "budget_exceeded",
-        bytes: 0,
-        detail: `needed ${result.billableBytes} B, ${bytesRemaining()} B left`,
-      });
-      return pack({
-        ok: false,
-        reason: "budget_exceeded",
-        bytes_required: result.billableBytes,
-        bytes_remaining: bytesRemaining(),
-        hint: "This answer is larger than the remaining budget, so nothing was returned. Narrow the request: search for a specific term, or ask for a single section.",
-        ...metricsField(),
-      });
-    }
-
     // An agent that gave up mid-call never receives this answer: the runtime
-    // discards it. Billing it would spend the budget on bytes that did not
-    // leave, and the strip would show text nobody read.
+    // discards it. Counting it would put bytes on the record that never left,
+    // and the strip would show text nobody read.
     if (options?.signal?.aborted) {
       recordAudit({
         tool: definition.name,
@@ -186,17 +130,16 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
       return pack({
         ok: false,
         reason: "aborted",
-        hint: "The call was cancelled before it returned. Nothing was disclosed and nothing was charged.",
-        ...metricsField(),
+        hint: "The call was cancelled before it returned. Nothing was disclosed and nothing was counted.",
       });
     }
 
     const payload = result.value as Record<string, unknown>;
-    if (result.billableBytes > 0) {
+    if (result.servedBytes > 0) {
       recordTransmission({
         tool: definition.name,
-        text: result.billableTexts.join("\n"),
-        bytes: result.billableBytes,
+        text: result.servedTexts.join("\n"),
+        bytes: result.servedBytes,
       });
     }
 
@@ -204,11 +147,11 @@ export function registerToolWithPolicy<Args extends Record<string, unknown>>(
       tool: definition.name,
       args,
       decision: truncated ? "truncated" : "allowed",
-      bytes: result.billableBytes,
+      bytes: result.servedBytes,
       detail: truncated ? `capped at ${policy.maxBytesPerCall} B per call` : undefined,
     });
 
-    return pack({ ok: true, ...payload, ...metricsField() });
+    return pack({ ok: true, ...payload });
   }
 
   return registerWithBrowser(
@@ -240,5 +183,5 @@ function truncateForDisplay(value: string): string {
 /** Measures a result without registering anything. Used by the preview pane. */
 export function previewCost(value: unknown): number {
   const redactor = buildRedactor(getState().entities);
-  return scrubAndMeasure(value, redactor).billableBytes;
+  return scrubAndMeasure(value, redactor).servedBytes;
 }

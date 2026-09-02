@@ -5,7 +5,7 @@ import type { Section } from "./types";
  *
  * Sections are the unit of the whole tool surface: the agent asks for an
  * outline, searches, then pulls one section at a time. Making them small and
- * named is what lets a useful analysis happen inside a tight byte budget.
+ * named is what lets an agent work a document without asking for all of it.
  */
 
 const MAX_CHARS_PER_SECTION = 2400;

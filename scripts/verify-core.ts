@@ -107,7 +107,7 @@ check(
  * cross-reference ("clause 1. Kaltbrunn served notice …"), the "i" of "is"
  * read as a roman numeral ("clause is likely unenforceable …"), and the
  * account number, which shouts like a title because it is all caps. That put
- * 152 B of contract prose into the unbilled channel.
+ * 152 B of contract prose into the uncounted channel.
  */
 const HEADING_GRAMMAR: Array<[string, boolean]> = [
   ["# MASTER SERVICES AGREEMENT", true],
@@ -151,14 +151,14 @@ check(
   normalProbe.every((h) => redactor.verify(h.snippet).length === 0),
 );
 
-console.log("\nmeasurement and budget");
+console.log("\nmeasurement");
 const measured = scrubAndMeasure({ id: "s01", title: "Fees", text: "Paid to Marceline Dubreuil" }, redactor);
-check("structural keys are not billed", measured.billableBytes < 40, `${measured.billableBytes} B`);
-check("billed text is the redacted text", measured.billableTexts.join("").includes("[PERSON_"));
+check("structural keys are not counted", measured.servedBytes < 40, `${measured.servedBytes} B`);
+check("counted text is the redacted text", measured.servedTexts.join("").includes("[PERSON_"));
 const big = { text: "x".repeat(9000) };
 const { result, truncated } = truncateToFit(big, redactor, 1024);
-check("oversized results are truncated to the cap", truncated && result.billableBytes <= 1024,
-  `${result.billableBytes} B`);
+check("oversized results are truncated to the cap", truncated && result.servedBytes <= 1024,
+  `${result.servedBytes} B`);
 
 console.log("\nleak sweep over every section");
 let leaky = 0;

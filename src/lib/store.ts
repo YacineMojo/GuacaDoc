@@ -8,7 +8,6 @@ import type {
   PolicyDecision,
   TransmittedChunk,
 } from "./types";
-import { DEFAULT_BUDGET_RATIO } from "./policy/measure";
 
 /**
  * The whole application state, held in a module-level singleton.
@@ -22,9 +21,8 @@ import { DEFAULT_BUDGET_RATIO } from "./policy/measure";
 export interface AppState {
   doc: LoadedDocument | null;
   entities: Entity[];
-  /** Share of the extracted text the agent may consume, 0..1. */
-  budgetRatio: number;
-  bytesSpent: number;
+  /** Bytes of document text that have actually been served, this document. */
+  bytesServed: number;
   audit: AuditEvent[];
   transmitted: TransmittedChunk[];
   findings: Finding[];
@@ -61,8 +59,7 @@ export interface AppState {
 const initialState: AppState = {
   doc: null,
   entities: [],
-  budgetRatio: DEFAULT_BUDGET_RATIO,
-  bytesSpent: 0,
+  bytesServed: 0,
   audit: [],
   transmitted: [],
   findings: [],
@@ -99,16 +96,14 @@ export function subscribe(listener: () => void): () => void {
  * the record is the point. Loading a document goes through startDocument(),
  * which keeps the record.
  *
- * Three things survive, because none of them is session data: the budget the
- * user chose, and the two facts about registration. Clearing those would tell
- * the interface the tools are gone while they are still live in
- * document.modelContext.
+ * Two things survive, because neither is session data: the facts about
+ * registration. Clearing those would tell the interface the tools are gone
+ * while they are still live in document.modelContext.
  */
 export function resetSession() {
   const pending = state.pendingConfirmation;
   state = {
     ...initialState,
-    budgetRatio: state.budgetRatio,
     toolsRegistered: state.toolsRegistered,
     browserTools: state.browserTools,
   };
@@ -122,8 +117,8 @@ export function resetSession() {
  * Starts a session on a new document while keeping the record of every call
  * already answered.
  *
- * The budget, the transmitted feed and the token registry all restart: they
- * describe one document and mean nothing across two. The audit trail does not
+ * The byte count, the transmitted feed and the token registry all restart:
+ * they describe one document and mean nothing across two. The audit trail does not
  * restart. An agent attached to this tab typically probes the tools before the
  * user has opened anything, and wiping those calls on load is what used to
  * make them disappear from a record advertised as gapless. The seam is marked
@@ -134,7 +129,6 @@ export function startDocument(doc: LoadedDocument) {
   const audit = state.audit;
   state = {
     ...initialState,
-    budgetRatio: state.budgetRatio,
     toolsRegistered: state.toolsRegistered,
     browserTools: state.browserTools,
     audit,
@@ -147,7 +141,7 @@ export function startDocument(doc: LoadedDocument) {
       args: {},
       decision: "allowed",
       bytes: 0,
-      detail: "document opened — budget and tokens restart here",
+      detail: "document opened — the byte count and the tokens restart here",
       boundary: true,
     });
   }
@@ -155,24 +149,10 @@ export function startDocument(doc: LoadedDocument) {
 
 // --- derived values -------------------------------------------------------
 
-export function budgetBytes(s: AppState = state): number {
-  return s.doc ? Math.floor(s.doc.byteLength * s.budgetRatio) : 0;
-}
-
-export function bytesRemaining(s: AppState = state): number {
-  return Math.max(0, budgetBytes(s) - s.bytesSpent);
-}
-
-export function consumedRatio(s: AppState = state): number {
-  const total = budgetBytes(s);
-  if (total <= 0) return 0;
-  return Math.min(1, s.bytesSpent / total);
-}
-
-/** Share of the whole document that has been transmitted, not of the budget. */
-export function documentConsumedRatio(s: AppState = state): number {
+/** Share of the whole document that has been served to an agent so far. */
+export function documentServedRatio(s: AppState = state): number {
   if (!s.doc || s.doc.byteLength === 0) return 0;
-  return Math.min(1, s.bytesSpent / s.doc.byteLength);
+  return Math.min(1, s.bytesServed / s.doc.byteLength);
 }
 
 // --- mutations ------------------------------------------------------------
@@ -202,7 +182,7 @@ export function recordTransmission(chunk: Omit<TransmittedChunk, "seq" | "ts">) 
       ...s.transmitted.slice(-199),
       { ...chunk, seq: s.transmitted.length + 1, ts: new Date().toISOString() },
     ],
-    bytesSpent: s.bytesSpent + chunk.bytes,
+    bytesServed: s.bytesServed + chunk.bytes,
   }));
 }
 

@@ -14,9 +14,7 @@ import type { AuditEvent, TransmittedChunk } from "@/lib/types";
 export function Strip({ chunks, audit }: { chunks: TransmittedChunk[]; audit: AuditEvent[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
 
-  const refusals = audit.filter(
-    (event) => event.decision === "budget_exceeded" || event.decision === "cancelled",
-  );
+  const refusals = audit.filter((event) => event.decision === "cancelled");
 
   const cells = [
     ...chunks.map((chunk) => ({
@@ -31,10 +29,7 @@ export function Strip({ chunks, audit }: { chunks: TransmittedChunk[]; audit: Au
       key: `a${event.seq}`,
       ts: event.ts,
       tool: event.tool,
-      body:
-        event.decision === "cancelled"
-          ? "Declined by you. Nothing was returned."
-          : "Refused: this answer would not fit what is left of the budget. Nothing was returned.",
+      body: "Declined by you. Nothing was returned.",
       meta: "0 B",
       withheld: true,
     })),

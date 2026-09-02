@@ -22,8 +22,8 @@ tab, split into sections, and scanned locally for identifying values. The user
 decides, per value or per type, whether it goes out **as written**, **as a
 stable token**, or **never**. An agent then reads the document only through five
 registered tools, and every answer those tools return passes a single policy
-function that substitutes, measures, bills against a byte budget, asks for
-consent on writes and appends an audit line.
+function that substitutes, measures what left, asks for consent on writes and
+appends an audit line.
 
 There is no backend. `next.config.ts` sets `output: "export"`, so the build
 product is `out/` — HTML, JS, CSS, fonts and one pdf.js worker. There are no API
@@ -88,7 +88,7 @@ need the current value synchronously, and a single object makes the
 | `Section` | `{ id, title, level, text, start, end }` |
 | `LoadedDocument` | `{ name, kind, text, sections[], byteLength, loadedAt }` |
 | `AuditEvent` | `{ seq, ts, tool, args, decision, bytes, detail?, boundary? }` |
-| `PolicyDecision` | `allowed truncated budget_exceeded denied cancelled error` |
+| `PolicyDecision` | `allowed truncated denied cancelled error` |
 | `TransmittedChunk` | `{ seq, ts, tool, text, bytes }` — what actually left |
 | `Finding` | `{ id, ts, sectionId, note }` — an agent write, after consent |
 
@@ -128,8 +128,8 @@ lines with no terminal punctuation. Bodies over `MAX_CHARS_PER_SECTION = 2400`
 are cut on paragraph boundaries into `… (part N)`. Sections are `s01`, `s02`, …
 A document with no headings becomes one `Document` section, split if long.
 
-Sections are the unit of the whole tool surface: small and named is what lets a
-useful analysis fit in a tight byte budget.
+Sections are the unit of the whole tool surface: small and named is what lets
+an agent work a document without asking for all of it at once.
 
 Three guards keep body text from being promoted to a heading, all three paid
 for by a real agent run against the sample (see §9):
@@ -293,30 +293,29 @@ reason plus the two headers WebMCP needs.
    prompt is already open → `denied` with `confirmation_busy`, never
    `declined_by_user`: only one modal can be on screen, agents batch their
    calls, and reporting a refusal nobody made would put a lie in the record.
-3. **Budget already at zero** on a read → `budget_exceeded`, nothing runs.
-4. **Handler runs.** A throw becomes `error` with the message, not an exception
+3. **Handler runs.** A throw becomes `error` with the message, not an exception
    crossing the boundary.
-5. **Scrub and measure** the whole result tree (`truncateToFit` →
-   `scrubAndMeasure`). Strings over the cap are truncated by repeatedly
-   trimming the longest billable string until it fits, appending
-   `[…truncated]` — truncating beats refusing, because a partial section still
-   lets the agent decide whether to spend more.
-6. **Residual leaks** (values that survived pass one and were neutralized by
+4. **Scrub and measure** the whole result tree (`truncateToFit` →
+   `scrubAndMeasure`). Strings over the per-call cap are truncated by
+   repeatedly trimming the longest counted string until it fits, appending
+   `[…truncated]`. The cap is a response size, not an allowance: truncating
+   beats refusing, because a partial section still tells the agent whether the
+   rest is worth asking for.
+5. **Residual leaks** (values that survived pass one and were neutralized by
    pass two) are recorded as `redaction` violations. It means a detection rule
    needs work, and it is shown rather than swallowed.
-7. **Over remaining budget** → `budget_exceeded` with `bytes_required` and
-   `bytes_remaining`, and a hint telling the agent to narrow the request.
-   Nothing is returned and nothing is billed.
-8. **Agent aborted mid-call** (`options.signal.aborted`) → `cancelled`, 0 bytes.
-   Billing an answer the runtime discarded would spend budget on bytes that
+6. **Agent aborted mid-call** (`options.signal.aborted`) → `cancelled`, 0 bytes.
+   Counting an answer the runtime discarded would put bytes on the record that
    never left and print text nobody read.
-9. **Success** → record the transmission (the redacted text and its byte count),
+7. **Success** → record the transmission (the redacted text and its byte count),
    append the audit line as `allowed` or `truncated`, and return
-   `{ ok: true, …payload, _metrics }`.
+   `{ ok: true, …payload }`.
 
-`_metrics` rides on **every** answer, success or refusal, and is never billed:
-budget, used, remaining, budget ratio, document ratio. An agent that cannot see
-its own budget cannot pace itself.
+There is **no session quota**, and that is a decision rather than an omission.
+The document an agent receives has already had its identifying values replaced;
+serving it in smaller pieces protects nobody, and a cap only teaches a model to
+ask for the important parts first. What survives is the measurement, because
+the record is the thing a person can check.
 
 Bytes are UTF-8 (`TextEncoder`), not string length.
 
@@ -358,29 +357,30 @@ Bytes are UTF-8 (`TextEncoder`), not string length.
 18. Tokens and blocked markers styled distinctly in the agent pane.
 
 ### Disclosure control
-19. Byte budget as a share of the file, 5 %–100 % in 5-point steps, default 30 %,
-    live slider in the header.
-20. Per-call cap of 4 096 billable bytes, with truncation instead of refusal.
-21. Structural keys and per-tool declared `freeKeys` exempt from billing;
-    everything else billed by default.
-22. Refusals returned as structured, actionable answers — `budget_exhausted`,
-    `budget_exceeded`, `declined_by_user`, `confirmation_busy`, `aborted`,
-    `no_document`, `tool_error` — never thrown.
+19. No session quota. Rationing a text whose identifying values are already
+    substituted protects nobody, so nothing caps how much an agent may read.
+    What is kept is the measurement.
+20. Per-call cap of 4 096 served bytes, with truncation instead of refusal.
+21. Structural keys and per-tool declared `freeKeys` exempt from the count;
+    everything else counted as served by default.
+22. Refusals returned as structured, actionable answers — `declined_by_user`,
+    `confirmation_busy`, `aborted`, `no_document`, `tool_error` — never
+    thrown.
 23. Consent modal for write tools that suspends the call, closes on Escape as a
     decline, and resolves to `false` if the session is cleared underneath it.
-24. Disclosure meter drawn as a halved avocado: the flesh fills with budget
-    spent, the stone carries the count of values never served, and the share of
-    the whole file sits underneath the share of the budget (`Meter.tsx`).
+24. Disclosure meter drawn as a halved avocado: the flesh fills with the share
+    of the file served, the stone carries the count of values never served, and
+    the exact byte count sits underneath (`Meter.tsx`).
 
 ### Observability
 25. **Service strip** — every chunk that actually left the tab, in order, with
-    its timestamp, tool and byte count. Budget refusals and declined writes are
-    interleaved into the same strip by timestamp, in the stone brown, so a call
-    that returned nothing still leaves a mark (`Strip.tsx`).
+    its timestamp, tool and byte count. Declined writes are interleaved into
+    the same strip by timestamp, in the stone brown, so a call that returned
+    nothing still leaves a mark (`Strip.tsx`).
 26. **Record of every call** — sequence, clock with milliseconds, tool,
-    arguments, decision badge, billable bytes, detail (`AuditLog.tsx`).
+    arguments, decision badge, bytes served, detail (`AuditLog.tsx`).
 27. **Session boundaries are marked, not erased.** Opening a document restarts
-    the budget and the token registry but keeps the record, with a `boundary`
+    the byte count and the token registry but keeps the record, with a `boundary`
     row at the seam — an agent's first probes cannot vanish from a trail that
     claims to be gapless (`store.ts:startDocument`).
 28. **Unseen-call counter** on the Agent tab, cleared by actually looking at the
@@ -397,7 +397,7 @@ Bytes are UTF-8 (`TextEncoder`), not string length.
     headers WebMCP requires.
 31. Runtime-violation banner counting blocked network/storage attempts.
 32. **JSON session record export** (`export.ts`) containing document metadata,
-    budget, per-entity token/type/level/occurrence counts, every call, every
+    bytes served, per-entity token/type/level/occurrence counts, every call, every
     transmission with its redacted text, findings, blocked attempts, and what
     the browser confirmed holding — and **not one source value**, because
     exporting the mapping would put the protected data on a disk.
@@ -428,8 +428,8 @@ Bytes are UTF-8 (`TextEncoder`), not string length.
     description shown.
 40. **Sample investigation** — outline → search `liability` → two sections →
     metrics, the way an agent actually works a document.
-41. **Spend the budget** — reads sections until the policy refuses one, so the
-    refusal path is one click away.
+41. **Read every section** — hands the agent the whole document, one section at
+    a time, so that the absence of a quota is one click away from being seen.
 42. Findings written by the agent listed with their section id.
 
 ### Front page
@@ -519,7 +519,7 @@ assertions over the real modules and the bundled sample, and exits non-zero on
 failure. Current run: **all 37 pass.**
 
 Grouped: detection (9), token stability (2), redaction (7), decoding (2),
-sectioning (4), search (3), measurement and budget (3), a leak sweep over every
+sectioning (4), search (3), measurement (3), a leak sweep over every
 section (1), and consent (6).
 
 The ones that matter most:
@@ -542,8 +542,8 @@ The ones that matter most:
 Measured on the bundled sample (`fictional-services-agreement.md`, 3 784 B,
 10 sections, 156 B of titles): **38 entities** — 10 dates, 6 people, 5 amounts,
 4 organizations, 3 emails, 3 references, 2 locations, 2 phones, 1 IBAN, 1 card,
-1 long id. Two default to withheld (IBAN, card), 36 to token. At the default
-30 % budget an agent gets 1 135 bytes for the session.
+1 long id. Two default to withheld (IBAN, card), 36 to token, for 44
+substitutions once recurrences are counted.
 
 ### Where the last two fixes came from
 
@@ -584,9 +584,9 @@ Stated plainly, because a spec that only lists what works is not a spec.
   on purpose: `PERSON_01` meaning two different people in one trail would make
   the trail useless as a record.
 - **Substitution shrinks the exposed surface, it does not remove it.** An agent
-  asking many narrow questions can still reconstruct part of the document, up to
-  the budget. That is what the budget is for, and it is why the strip shows
-  every byte.
+  asking enough questions can reconstruct the whole document, and nothing here
+  stops it. What it reconstructs is the pseudonymized version, which is why the
+  strip shows every byte rather than pretending to cap them.
 - **A pseudonym protects the name, not necessarily the person.** Someone with
   distinctive behaviour stays recognisable by inference. This is stated in the
   interface itself, on the start screen.

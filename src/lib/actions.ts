@@ -111,7 +111,3 @@ export function addManualEntity(value: string, type: EntityType): MarkResult {
 function clip(value: string): string {
   return value.length > 44 ? value.slice(0, 44) + "…" : value;
 }
-
-export function setBudgetRatio(ratio: number) {
-  setState({ budgetRatio: Math.max(0.01, Math.min(1, ratio)) });
-}

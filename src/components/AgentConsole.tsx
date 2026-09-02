@@ -50,10 +50,14 @@ export function AgentConsole() {
   }
 
   /**
-   * Reads sections one after another until the policy layer refuses one.
-   * The refusal is the point: it is what the tape prints in red.
+   * Reads every section, one after another, and stops at nothing.
+   *
+   * That is the demonstration: there is no quota to hit. An agent may take the
+   * whole document and still never learn a name, because what it receives was
+   * substituted on the way out. The strip fills, the record grows, and the key
+   * stays in the tab.
    */
-  async function spendBudget() {
+  async function readEverySection() {
     setRunning(true);
     try {
       const outline = await callLocalTool("get_document_outline", {});
@@ -62,9 +66,7 @@ export function AgentConsole() {
       };
       for (const section of payload.sections ?? []) {
         const result = await callLocalTool("get_section", { id: section.id });
-        const body = JSON.parse(result.content[0]?.text ?? "{}") as { ok?: boolean };
         setResponse(result.content.map((c) => c.text).join("\n"));
-        if (body.ok === false) break;
       }
     } catch (error) {
       setResponse(String(error));
@@ -137,8 +139,8 @@ export function AgentConsole() {
           <Button size="sm" onClick={runScenario} disabled={running}>
             Sample investigation
           </Button>
-          <Button size="sm" tone="stone" onClick={spendBudget} disabled={running}>
-            Spend the budget
+          <Button size="sm" tone="stone" onClick={readEverySection} disabled={running}>
+            Read every section
           </Button>
           <span className="label ml-auto">
             {isWebMcpAvailable() ? "browser agent connected" : "browser agent absent"}
@@ -154,7 +156,7 @@ export function AgentConsole() {
         ) : (
           <p className="mono text-[0.6875rem] leading-relaxed text-text-faint">
             Call a tool to see exactly what an agent would receive, after
-            substitution and after the budget check.
+            substitution and after the policy layer has had its say.
           </p>
         )}
       </div>

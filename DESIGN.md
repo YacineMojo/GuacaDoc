@@ -9,8 +9,8 @@ and does not turn back into an avocado. Every visual decision below comes from
 that, rather than from a mood board.
 
 - **Green is what passes.** Shown values, allowed calls, the served portion of
-  the budget.
-- **Brown is the stone.** Withheld values, refused calls, an exhausted budget.
+  the file.
+- **Brown is the stone.** Withheld values, declined calls, values never served.
 - **There is no red anywhere.** A refusal is the policy working, not an error,
   and colouring it like a failure would teach people to dismiss it.
 
@@ -28,8 +28,10 @@ world you are looking at should be legible before you read a word.
 ## The signature
 
 The disclosure meter is a halved avocado seen in section. The flesh fills with
-served guacamole as the budget is spent, so drawing and percentage read the
-same direction. The stone at the centre never fills and carries the count of
+served guacamole as the file is served, so drawing and percentage read the
+same direction. It measures and does not ration: nothing caps how much an agent
+may read, because a document whose names are already gone is not made safer by
+arriving in smaller pieces. The stone at the centre never fills and carries the count of
 values withheld outright.
 
 It is an instrument with two readings, not an illustration: the one part of the
@@ -74,8 +76,8 @@ rather than pixel offset, since substitution changes how long the text is.
 - **A dark control-desk theme.** It was the first direction and it worked, but
   near-black plus one bright accent is where this kind of tool always lands.
 - **Guacamole vocabulary in the interface.** The brand is offbeat; the labels
-  are not. Nothing in the workspace says "guac". The counter says "Budget
-  spent", the log says "budget exceeded".
+  are not. Nothing in the workspace says "guac". The counter says "Of the file,
+  served", the log says "truncated".
 - **A perforated ticker tape.** Good object, wrong world once the palette went
   light. The strip kept the behaviour and dropped the costume.
 - **Numbered markers everywhere.** Kept in exactly one place, the three steps
@@ -95,3 +97,15 @@ leave it up, which is worse than never having hidden it.
 What is never thrown away is what the user typed. The pasted answer is tokens,
 it is not sensitive, and destroying someone's input to protect something they
 restore with one click would trade a real loss for a cosmetic gain.
+
+Then an agent pressed the button. Asked for the bank details of a contract it
+had only ever seen in tokens, it took the cursor, clicked Reveal, and read the
+key off the table. The withheld IBAN survived, because a blocked value is an
+absence and there was nothing on the page to read, but the pseudonyms did not.
+
+So both panels now refuse to open at all while an agent is attached. The rule
+is written against attachment and not against the click, because the click is
+not knowable: these agents drive a real cursor, the event is trusted, and a
+page cannot tell that hand from yours. Attachment is knowable, the browser says
+so. The rejected version was a warning, which is what the panel used to show,
+and a warning is only ever as strong as the person who is not there to read it.

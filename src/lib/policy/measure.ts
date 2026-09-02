@@ -1,20 +1,14 @@
 import type { Redactor, Leak } from "../redact";
 
 /**
- * Share of the document an agent may receive over a whole session.
+ * Walks a tool result, scrubs every string in it and counts what leaves.
  *
- * Lives here rather than in the store because the landing page reads it at
- * build time to state the real default, and the store is a client module.
- */
-export const DEFAULT_BUDGET_RATIO = 0.3;
-
-/**
- * Walks a tool result, scrubs every string in it and counts what that costs.
- *
- * The counting rule is deliberately fail-safe: a string is billable unless its
- * key is on the structural list. Forgetting to classify a new field makes it
- * expensive, never free. The opposite default would let a careless handler
- * smuggle document text out under a structural-looking name.
+ * Nothing is capped by this count any more; it is what the strip and the
+ * record report. The rule stays fail-safe all the same: a string is counted
+ * unless its key is on the structural list, so forgetting to classify a new
+ * field overstates what left rather than hiding it. The opposite default
+ * would let a careless handler slip document text past the record under a
+ * structural-looking name.
  */
 
 const STRUCTURAL_KEYS = new Set([
@@ -30,17 +24,15 @@ const STRUCTURAL_KEYS = new Set([
   "ok",
   "reason",
   "hint",
-  "_metrics",
-  "budget",
   "unit",
 ]);
 
 export interface MeasuredResult {
   value: unknown;
-  /** Bytes charged against the session budget. */
-  billableBytes: number;
-  /** The scrubbed strings that were charged, for the live feed. */
-  billableTexts: string[];
+  /** Bytes of document text this answer put in front of the agent. */
+  servedBytes: number;
+  /** The scrubbed strings that were counted, for the live feed. */
+  servedTexts: string[];
   /** Source values that survived the first substitution pass, if any. */
   leaks: Leak[];
 }
@@ -55,27 +47,27 @@ export function scrubAndMeasure(
   freeKeys: readonly string[] = [],
 ): MeasuredResult {
   const exempt = new Set([...STRUCTURAL_KEYS, ...freeKeys]);
-  const billableTexts: string[] = [];
+  const servedTexts: string[] = [];
   const leaks: Leak[] = [];
-  let billableBytes = 0;
+  let servedBytes = 0;
 
-  function walk(node: unknown, key: string | null, billable: boolean): unknown {
+  function walk(node: unknown, key: string | null, counted: boolean): unknown {
     if (typeof node === "string") {
       const { text, leaks: found } = redactor.scrub(node);
       if (found.length) leaks.push(...found);
-      if (billable) {
-        billableBytes += utf8Length(text);
-        billableTexts.push(text);
+      if (counted) {
+        servedBytes += utf8Length(text);
+        servedTexts.push(text);
       }
       return text;
     }
     if (Array.isArray(node)) {
-      return node.map((item) => walk(item, key, billable));
+      return node.map((item) => walk(item, key, counted));
     }
     if (node && typeof node === "object") {
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
-        out[k] = walk(v, k, billable && !exempt.has(k));
+        out[k] = walk(v, k, counted && !exempt.has(k));
       }
       return out;
     }
@@ -83,13 +75,15 @@ export function scrubAndMeasure(
   }
 
   const scrubbed = walk(value, null, true);
-  return { value: scrubbed, billableBytes, billableTexts, leaks };
+  return { value: scrubbed, servedBytes, servedTexts, leaks };
 }
 
 /**
- * Trims the largest billable string until the result fits the cap.
- * Truncating beats refusing: a partial section still lets the agent decide
- * whether to spend budget on the rest.
+ * Trims the largest counted string until the result fits the per-call cap.
+ *
+ * The cap is about response size, not about how much an agent may see over a
+ * session: there is no such limit. Truncating beats refusing, because a
+ * partial section still tells the agent whether the rest is worth asking for.
  */
 export function truncateToFit(
   value: unknown,
@@ -98,13 +92,13 @@ export function truncateToFit(
   freeKeys: readonly string[] = [],
 ): { result: MeasuredResult; truncated: boolean } {
   let measured = scrubAndMeasure(value, redactor, freeKeys);
-  if (measured.billableBytes <= cap) return { result: measured, truncated: false };
+  if (measured.servedBytes <= cap) return { result: measured, truncated: false };
 
   const clone = JSON.parse(JSON.stringify(value)) as unknown;
   let guard = 0;
 
-  while (measured.billableBytes > cap && guard++ < 40) {
-    const overshoot = measured.billableBytes - cap;
+  while (measured.servedBytes > cap && guard++ < 40) {
+    const overshoot = measured.servedBytes - cap;
     const target = findLongestString(clone);
     if (!target) break;
     const current = target.get();

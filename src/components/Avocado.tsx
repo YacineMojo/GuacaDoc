@@ -60,22 +60,22 @@ export function GuacamoleBowl({ className = "", size = 26 }: { className?: strin
 /**
  * The disclosure meter: a halved avocado seen in section.
  *
- * The flesh fills with served guacamole as the budget is spent, so the drawing
- * and the percentage read the same direction. The stone at the centre never
+ * The flesh fills with served guacamole as the document is served, so the
+ * drawing and the percentage read the same direction. The stone at the centre never
  * fills, and carries the count of values that were withheld outright — it is
  * the one part of the document that is never served, in the picture and in the
  * policy alike.
  */
 export function AvocadoMeter({
-  spentRatio,
+  servedRatio,
   withheldCount,
   size = 168,
 }: {
-  spentRatio: number;
+  servedRatio: number;
   withheldCount: number;
   size?: number;
 }) {
-  const clamped = Math.max(0, Math.min(1, spentRatio));
+  const clamped = Math.max(0, Math.min(1, servedRatio));
   const over = clamped >= 1;
   // Flesh spans roughly y=8.6 to y=56 in the viewBox.
   const top = 56 - clamped * 47.4;
@@ -86,7 +86,7 @@ export function AvocadoMeter({
       width={size}
       height={(size / 52) * 64}
       role="img"
-      aria-label={`${Math.round(clamped * 100)} percent of the disclosure budget spent`}
+      aria-label={`${Math.round(clamped * 100)} percent of the document served to the agent`}
       fill="none"
     >
       <defs>

@@ -10,7 +10,7 @@ import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/branding";
 export const metadata: Metadata = {
   title: `${PRODUCT_NAME} — ${PRODUCT_TAGLINE}`,
   description:
-    "A document stays in your browser tab. An AI agent reads it through WebMCP tools whose every answer passes a policy layer: stable pseudonyms, a disclosure budget, and a visible record of what left.",
+    "A document stays in your browser tab. An AI agent reads it through WebMCP tools whose every answer passes a policy layer: stable pseudonyms, values withheld outright, and a visible record of what left.",
 };
 
 export const viewport: Viewport = {

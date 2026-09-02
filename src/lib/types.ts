@@ -67,7 +67,6 @@ export interface LoadedDocument {
 export type PolicyDecision =
   | "allowed"
   | "truncated"
-  | "budget_exceeded"
   | "denied"
   | "cancelled"
   | "error";
@@ -78,14 +77,14 @@ export interface AuditEvent {
   tool: string;
   args: unknown;
   decision: PolicyDecision;
-  /** Billable bytes actually charged for this call. */
+  /** Bytes of document text this call actually served. */
   bytes: number;
   detail?: string;
   /**
    * Set on a session boundary rather than a tool call.
    *
-   * Loading a document restarts the budget and the token registry, so calls
-   * either side of it are not comparable. The record keeps both and marks the
+   * Loading a document restarts the byte count and the token registry, so
+   * calls either side of it are not comparable. The record keeps both and marks the
    * seam, because dropping the earlier calls is how an agent's first probes
    * used to vanish from a trail that claims to have no gaps.
    */

@@ -3,14 +3,7 @@
 import { buildRedactor } from "../redact";
 import { searchSections } from "../search";
 import { registerToolWithPolicy } from "../policy/wrapper";
-import {
-  addFinding,
-  budgetBytes,
-  bytesRemaining,
-  documentConsumedRatio,
-  getState,
-  setState,
-} from "../store";
+import { addFinding, documentServedRatio, getState, setState } from "../store";
 import { beginRegistration, toolsHeldByBrowser, withdrawRegistration } from "./api";
 import type { RegistrationOutcome } from "./api";
 
@@ -20,8 +13,9 @@ import type { RegistrationOutcome } from "./api";
  * There is no get_full_text and there never will be: a tool that returns the
  * document defeats every layer above it. Descriptions are one plain sentence.
  * They ask for restraint, but restraint is not what enforces anything here.
- * The wrapper does. A model that ignores every word below still cannot get
- * more than the budget allows, and still cannot see a blocked value.
+ * The wrapper does. A model that ignores every word below still receives
+ * pseudonyms instead of names, still cannot see a blocked value, and still
+ * leaves every byte it took on the record.
  */
 
 const PER_CALL_CAP = 4096;
@@ -67,8 +61,8 @@ export function registerAllTools(): () => void {
       substitute: true,
       requireConfirmation: false,
       // The outline is structure. Titles are still redacted, but a map of the
-      // document is not a disclosure of its contents, and charging for it
-      // would push agents to skip the cheap step and read sections blind.
+      // document is not a disclosure of its contents, and counting it as
+      // served text would overstate what an agent actually read.
       freeKeys: ["title"],
     },
     signal,
@@ -151,16 +145,14 @@ export function registerAllTools(): () => void {
   pending.push(registerToolWithPolicy(
     {
       name: "get_metrics",
-      description: "Report how much of the disclosure budget this session has used.",
+      description: "Report how much of the document has been served to an agent so far.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
       handler: () => {
         const state = getState();
         return {
-          budget_bytes: budgetBytes(state),
-          bytes_used: state.bytesSpent,
-          bytes_remaining: bytesRemaining(state),
+          bytes_served: state.bytesServed,
           document_bytes: state.doc?.byteLength ?? 0,
-          document_consumed_ratio: Number(documentConsumedRatio(state).toFixed(4)),
+          document_served_ratio: Number(documentServedRatio(state).toFixed(4)),
           calls_made: state.audit.filter((event) => !event.boundary).length,
         };
       },

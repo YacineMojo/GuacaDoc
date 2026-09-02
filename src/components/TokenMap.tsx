@@ -15,15 +15,21 @@ import { Button, Empty, Field } from "./ui";
  * you ask for them, and hiding is a real absence rather than a CSS blur.
  *
  * Revealing is bounded by useAutoHide: it lasts under a minute, and it ends
- * the moment the window loses focus or the page is hidden. Leaving the key up
- * on a tab nobody is watching is the only way this panel can hurt you.
+ * the moment the window loses focus or the page is hidden.
+ *
+ * While an agent is attached it does not open at all. The button is a button:
+ * an agent with a cursor can press it as easily as you can, and it did, so a
+ * panel that only warned about the risk was leaving the key one click from
+ * anything driving the tab. The warning is now the rule. Detaching the agent
+ * is what makes the key readable again, which is the same trade the rest of
+ * the app makes: the person keeps the key by being the only one in the room.
  */
 const MASK = "••••••••";
 const REVEAL_SECONDS = 45;
 
 export function TokenMap({ entities, agentAttached }: { entities: Entity[]; agentAttached: boolean }) {
   const [query, setQuery] = useState("");
-  const { revealed, remaining, reveal, hide } = useAutoHide(REVEAL_SECONDS);
+  const { revealed, remaining, reveal, hide, blocked } = useAutoHide(REVEAL_SECONDS, agentAttached);
 
   const pseudonymized = entities.filter((e) => e.level === "pseudonymized");
   const withheld = entities.filter((e) => e.level === "blocked");
@@ -50,23 +56,26 @@ export function TokenMap({ entities, agentAttached }: { entities: Entity[]; agen
           <Button
             size="sm"
             tone={revealed ? "stone" : "neutral"}
+            disabled={blocked}
             onClick={revealed ? hide : reveal}
             title={
-              revealed
-                ? "Hide now. It hides itself anyway when the countdown ends or the window loses focus."
-                : `Show the real values for ${REVEAL_SECONDS} seconds`
+              blocked
+                ? "An agent is attached to this tab and reads what is on screen. Detach it to read your key."
+                : revealed
+                  ? "Hide now. It hides itself anyway when the countdown ends or the window loses focus."
+                  : `Show the real values for ${REVEAL_SECONDS} seconds`
             }
           >
-            {revealed ? `Hide · ${remaining}s` : "Reveal"}
+            {blocked ? "Reveal · locked" : revealed ? `Hide · ${remaining}s` : "Reveal"}
           </Button>
         </div>
 
         <p className="text-[0.6875rem] leading-relaxed text-text-faint">
-          {revealed
-            ? agentAttached
-              ? `An agent is attached to this tab and can read what is on screen. This hides itself in ${remaining}s, or the moment you look away.`
-              : `Real values are on screen. This hides itself in ${remaining}s, or the moment you look away.`
-            : "Values are kept off the page so nothing reading this tab can lift them."}
+          {blocked
+            ? "An agent is attached to this tab, so the key will not open. It reads the screen and it can press this button itself, which is not a click we are able to tell apart from yours. Detach it to read your key."
+            : revealed
+              ? `Real values are on screen. This hides itself in ${remaining}s, or the moment you look away.`
+              : "Values are kept off the page so nothing reading this tab can lift them."}
         </p>
       </div>
 

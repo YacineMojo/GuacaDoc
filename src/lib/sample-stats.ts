@@ -1,7 +1,6 @@
 import { DEMO_DOCUMENT, DEMO_DOCUMENT_NAME } from "./demo";
 import { DEFAULT_LEVELS, detectEntities } from "./detect/index";
 import { loadFromString } from "./extract/index";
-import { DEFAULT_BUDGET_RATIO } from "./policy/measure";
 
 /**
  * The numbers the landing page states, computed from the real modules on the
@@ -20,6 +19,11 @@ export const SAMPLE_STATS = {
   sections: doc.sections.length,
   entities: entities.length,
   withheld: entities.filter((e) => DEFAULT_LEVELS[e.type] === "blocked").length,
-  budgetRatio: DEFAULT_BUDGET_RATIO,
-  budgetBytes: Math.floor(doc.byteLength * DEFAULT_BUDGET_RATIO),
+  /**
+   * Places in the text that get rewritten on the way out.
+   *
+   * Not the same as the entity count, and that is the point: one name found
+   * once is one entity and several substitutions, because it recurs.
+   */
+  substitutions: entities.reduce((total, e) => total + e.spans.length, 0),
 } as const;

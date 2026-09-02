@@ -1,6 +1,6 @@
 "use client";
 
-import { budgetBytes, getState } from "./store";
+import { getState } from "./store";
 
 /**
  * Session record, for filing or for a reviewer.
@@ -24,11 +24,7 @@ export function buildAuditExport() {
           loaded_at: state.doc.loadedAt,
         }
       : null,
-    budget: {
-      ratio_of_document: state.budgetRatio,
-      bytes: budgetBytes(state),
-      bytes_spent: state.bytesSpent,
-    },
+    bytes_served: state.bytesServed,
     entities: state.entities.map((e) => ({
       token: e.level === "blocked" ? null : e.token,
       type: e.type,
@@ -46,7 +42,7 @@ export function buildAuditExport() {
             tool: event.tool,
             arguments: event.args,
             decision: event.decision,
-            billable_bytes: event.bytes,
+            bytes_served: event.bytes,
             detail: event.detail ?? null,
           },
     ),

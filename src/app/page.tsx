@@ -30,7 +30,7 @@ const TOOLS = [
   ["get_document_outline", "read", "Section ids, titles and sizes. No body text."],
   ["search_document", "read", "Which sections mention a term, with a short excerpt."],
   ["get_section", "read", "The text of one section, by id."],
-  ["get_metrics", "read", "How much of the disclosure budget is left."],
+  ["get_metrics", "read", "How much of the file has been served so far."],
   ["add_finding", "write", "Files one observation. Suspends on your approval."],
 ] as const;
 
@@ -61,8 +61,8 @@ const LIMITS = [
     body: "Regular expressions and a capitalization heuristic. It over-detects on purpose, and the review step exists because it will still miss things.",
   },
   {
-    title: "Enough narrow questions rebuild part of the document",
-    body: "Up to the budget, and no further. That is what the budget is for, and why every byte that leaves is on the strip and in the record.",
+    title: "Enough narrow questions rebuild the redacted document",
+    body: "Nothing caps how much an agent may read, because rationing a text whose names are already gone protects nobody. What it rebuilds is the pseudonymized version, and every byte of it is on the strip and in the record.",
   },
 ];
 
@@ -127,7 +127,7 @@ export default function Home() {
               {[
                 ["Open the file", "It is read here, in the tab. Nothing is sent anywhere."],
                 ["Mark what stays behind", "Names, accounts, figures. Detection proposes, you decide."],
-                ["Let the agent read", "Through tools, inside a budget you set, on a record you keep."],
+                ["Let the agent read", "Through tools, one section at a time, on a record you keep."],
               ].map(([title, body], i) => (
                 <li key={title} className="flex gap-3.5">
                   <span className="mono mt-px w-4 shrink-0 text-[0.6875rem] font-medium text-guac-dark">
@@ -209,9 +209,8 @@ export default function Home() {
                   The wrapper is the only door. It substitutes every string in a result{" "}
                   <span className="text-text">after the handler has returned</span>, so a handler
                   cannot leak by forgetting to redact: forgetting is not a code path that exists. It
-                  also counts the billable bytes, refuses the call when the budget will not cover
-                  them, holds write calls on your approval, and appends the audit line. Tools are
-                  registered against an{" "}
+                  also counts every byte of document text that leaves, holds write calls on your
+                  approval, and appends the audit line. Tools are registered against an{" "}
                   <span className="mono text-[0.75rem]">AbortSignal</span> per generation, because
                   the API has no <span className="mono text-[0.75rem]">unregisterTool()</span> and a
                   remount would otherwise re-offer names the browser already holds.
@@ -238,8 +237,8 @@ export default function Home() {
                       cannot see a value, neither can a real agent. Press{" "}
                       <span className="font-medium text-text">Sample investigation</span> to watch
                       four calls, or{" "}
-                      <span className="font-medium text-text">Spend the budget</span> to watch the
-                      policy refuse one.
+                      <span className="font-medium text-text">Read every section</span> to hand the
+                      agent the whole file and watch it stay pseudonymous.
                     </p>
                   </div>
                   <div>
@@ -298,8 +297,8 @@ export default function Home() {
           <div className="mx-auto max-w-6xl px-6 py-12">
             <p className="label text-guac-dark">Checkable, not promised</p>
             <p className="mt-3 max-w-3xl text-[0.9375rem] leading-relaxed text-text-dim">
-              Every call is written to a record in the tab, with its decision and its billable
-              bytes. Open DevTools while you use it:{" "}
+              Every call is written to a record in the tab, with its decision and the bytes it
+              served. Open DevTools while you use it:{" "}
               <span className="text-text">the Network tab is empty, and it stays empty.</span>{" "}
               Production builds tell the browser{" "}
               <span className="mono text-[0.8125rem]">connect-src &apos;none&apos;</span>, so this
@@ -309,15 +308,15 @@ export default function Home() {
             {/*
               Four numbers, and the sample's own byte count is not one of them.
               How big the example file happens to be is a fact about the
-              example; what was found in it, what is withheld and what an agent
-              may spend are facts about the tool.
+              example; what was found in it, what is withheld and how many
+              places get rewritten on the way out are facts about the tool.
             */}
             <dl className="mono mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-[4px] border border-line bg-line sm:grid-cols-4">
               {[
                 [SAMPLE_STATS.entities, "entities detected"],
                 [SAMPLE_STATS.withheld, "withheld outright"],
                 [SAMPLE_STATS.sections, "addressable sections"],
-                [SAMPLE_STATS.budgetBytes.toLocaleString("en-US"), "bytes the agent may spend"],
+                [SAMPLE_STATS.substitutions, "substitutions in the text"],
               ].map(([value, caption]) => (
                 <div key={caption} className="bg-white px-4 py-3.5">
                   <dt className="font-display text-[1.375rem] font-semibold tracking-tight text-rind">
@@ -330,8 +329,8 @@ export default function Home() {
               ))}
             </dl>
             <p className="mt-2.5 text-[0.6875rem] leading-relaxed text-text-faint">
-              Measured at build time by the real detector on the bundled fictional contract, at the
-              default budget of {Math.round(SAMPLE_STATS.budgetRatio * 100)} % of the file.
+              Measured at build time by the real detector on the bundled fictional contract, with
+              the default level for each kind of value.
             </p>
 
             {/*
@@ -345,7 +344,7 @@ export default function Home() {
                   src="/shots/agent-view.webp"
                   width={1680}
                   height={949}
-                  alt="The agent view. A halved avocado meter reads 53.6 per cent of the budget spent, with 2 withheld values on its stone. A strip across the top shows each response that left the tab with its byte count. Below it, a record lists four calls, each marked allowed, and a key table whose real values are masked."
+                  alt="The agent view. A halved avocado meter reads the share of the file served to the agent, with 2 withheld values on its stone. A strip across the top shows each response that left the tab with its byte count. Below it, a record lists four calls, each marked allowed, and a key table whose real values are masked."
                   className="block w-full border-b border-line-soft"
                 />
               </a>
@@ -354,7 +353,7 @@ export default function Home() {
                 <span className="text-text">
                   The strip is everything that actually left the tab
                 </span>
-                , the record is every call with its cost and decision, the meter fills the flesh of
+                , the record is every call with its byte count and decision, the meter fills the flesh of
                 a halved avocado and carries the withheld count on its stone, and the key is masked
                 until you ask for it, because an agent driving this tab can read the screen.
               </figcaption>

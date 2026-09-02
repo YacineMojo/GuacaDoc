@@ -15,17 +15,32 @@ import { Button } from "./ui";
  *
  * The restored text is the same secret as the key, in prose, so it is bounded
  * the same way: it hides itself when the countdown ends or the window loses
- * focus. What you pasted is never touched. It is tokens, it is not sensitive,
- * and throwing away something a person typed to protect something they can
- * restore with one click would be the wrong trade.
+ * focus, and it does not assemble at all while an agent is attached. Reading
+ * the answer in clear is the last step of the round trip and it belongs to the
+ * person, alone in the tab. What you pasted is never touched. It is tokens, it
+ * is not sensitive, and throwing away something a person typed to protect
+ * something they can restore with one click would be the wrong trade.
  */
 const REVEAL_SECONDS = 120;
 
-export function DecodePanel({ entities }: { entities: Entity[] }) {
+export function DecodePanel({
+  entities,
+  agentAttached,
+}: {
+  entities: Entity[];
+  agentAttached: boolean;
+}) {
   const [input, setInput] = useState("");
-  const { revealed, remaining, reveal } = useAutoHide(REVEAL_SECONDS);
+  const { revealed, remaining, reveal, blocked } = useAutoHide(REVEAL_SECONDS, agentAttached);
   const redactor = useMemo(() => buildRedactor(entities), [entities]);
-  const decoded = useMemo(() => redactor.decode(input), [redactor, input]);
+  // Decoding is skipped rather than hidden while blocked. A string that exists
+  // in the render tree is a string an agent can be handed by a framework hook
+  // or a devtools bridge, and there is no reason to build it before it can be
+  // shown.
+  const decoded = useMemo(
+    () => (blocked ? "" : redactor.decode(input)),
+    [redactor, input, blocked],
+  );
   const recognised = useMemo(() => {
     const matches = input.match(/\[[A-Z]+_\d{2,}\]/g) ?? [];
     return new Set(matches).size;
@@ -45,7 +60,12 @@ export function DecodePanel({ entities }: { entities: Entity[] }) {
         className="mono min-h-24 flex-1 resize-none rounded-[4px] border border-line bg-white px-3 py-2.5 text-xs leading-relaxed text-text placeholder:text-text-faint focus:border-guac focus:outline-none"
       />
       <div className="min-h-0 flex-1 overflow-auto rounded-[4px] border border-line-soft bg-guac-wash px-3 py-2.5">
-        {!input ? (
+        {blocked ? (
+          <p className="mono text-[0.6875rem] leading-relaxed text-text-faint">
+            An agent is attached to this tab. The readable version is not put together while
+            something that reads the screen is watching. Detach it and the answer resolves here.
+          </p>
+        ) : !input ? (
           <p className="mono text-[0.6875rem] leading-relaxed text-text-faint">
             The readable version appears here, put together in this tab from your key.
           </p>
@@ -65,6 +85,7 @@ export function DecodePanel({ entities }: { entities: Entity[] }) {
       <p className="label shrink-0">
         {recognised} token{recognised === 1 ? "" : "s"} recognised
         {input.includes("[BLOCKED_") && " · withheld values cannot be restored"}
+        {blocked && " · locked while an agent is attached"}
         {input && revealed && ` · hides itself in ${remaining}s`}
       </p>
     </div>

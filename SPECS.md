@@ -62,11 +62,11 @@ C'est ici que l'utilisateur décide, une fois, ce qui sortira et sous quelle for
 Le cœur du projet. Un wrapper qui enveloppe chaque enregistrement de tool.
 
 - Signature du type `registerToolWithPolicy(definition, policy)`.
-- La politique porte : niveau d'accès, plafond de volume, substitution active ou non, confirmation utilisateur requise ou non.
+- La politique porte : niveau d'accès, plafond de taille par appel, substitution active ou non, confirmation utilisateur requise ou non.
 - La substitution est appliquée en sortie, systématiquement, sur toute valeur renvoyée. Elle ne doit pas pouvoir être court-circuitée par un chemin de code.
-- Comptage des octets réellement renvoyés à l'agent, cumulé sur la session.
-- **Budget** exprimé en pourcentage du texte extrait, réglé par l'utilisateur, valeur par défaut 30 %. Les métadonnées de structure sont exclues du calcul.
-- Au dépassement, le tool renvoie une réponse structurée et exploitable indiquant que le budget est atteint et invitant à une requête plus ciblée. Jamais une exception brute.
+- Comptage des octets réellement renvoyés à l'agent, cumulé sur la session. Les métadonnées de structure sont exclues du calcul.
+- **Pas de quota de session.** Rationner un texte dont les noms ont déjà disparu ne protège personne : ce qui protège, c'est que les valeurs identifiantes ne sortent jamais. Le comptage sert à rendre compte, pas à restreindre.
+- Seul plafond conservé : une taille maximale par réponse. Au dépassement, le résultat est tronqué et signalé comme tel, jamais refusé, pour que l'agent puisse décider s'il demande la suite.
 - Toute action d'écriture passe par `requestUserInteraction()`.
 - Journal d'audit horodaté de chaque appel : tool appelé, arguments, octets renvoyés, décision de la politique.
 
@@ -77,19 +77,17 @@ Surface volontairement étroite.
 - `get_document_outline` : structure et titres de sections, sans contenu.
 - `search_document(query)` : renvoie des identifiants de sections et des extraits courts.
 - `get_section(id)` : contenu d'une section, après substitution.
-- `get_metrics()` : pourcentage consommé, octets transmis, budget restant.
-
-Les métriques sont également jointes en champ secondaire à chaque réponse de tool, pour que l'agent s'autolimite. Ce champ est informatif : l'application ne dépend jamais de la façon dont le modèle l'interprète.
+- `get_metrics()` : octets transmis, part du document servie, nombre d'appels.
 
 Les descriptions de tools sont sobres et invitent à la parcimonie, en une phrase. Pas de texte long, pas de formulation qui ressemble à une instruction injectée.
 
 ### Phase 4 : mode Agent, interface
 
-- Compteur en temps réel : pourcentage du document consommé, en grand, avec le volume exact en octets en dessous.
+- Compteur en temps réel : part du document servie, en grand, avec le volume exact en octets en dessous.
 - Flux temps réel du texte transmis à l'agent, qui défile latéralement.
 - Panneau de correspondance permanent : jeton et valeur réelle en regard, consultable pendant que l'agent travaille.
 - Champ de décodage : l'utilisateur colle la réponse de l'agent, l'application resubstitue localement les valeurs réelles.
-- Blocage visible : au dépassement du budget, l'événement s'affiche en rouge dans le journal.
+- Refus visible : une écriture déclinée par l'utilisateur s'affiche dans le journal et sur le ruban, au même titre qu'un appel servi.
 
 ### Phase 5 : finitions
 
@@ -107,7 +105,7 @@ Les descriptions de tools sont sobres et invitent à la parcimonie, en une phras
 ## 7. Limites connues, à documenter explicitement
 
 - Le texte libre est le point faible. Une variante orthographique, une abréviation ou une mention partielle d'une entité peut échapper à la substitution.
-- La substitution réduit la surface d'exposition, elle ne la supprime pas. Un agent qui pose un grand nombre de requêtes ciblées peut reconstituer une partie du document dans la limite du budget.
+- La substitution réduit la surface d'exposition, elle ne la supprime pas. Un agent qui pose assez de requêtes peut reconstituer tout le document, et rien ne l'en empêche : ce qu'il reconstitue est la version pseudonymisée, et le journal dit combien en est sorti.
 - Le pseudonyme protège l'identité, pas nécessairement l'unicité : une entité au comportement singulier peut rester réidentifiable par recoupement.
 
 Ces limites doivent figurer dans le README. Les annoncer renforce la crédibilité du projet.
