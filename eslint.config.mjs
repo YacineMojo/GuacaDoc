@@ -25,6 +25,13 @@ const eslintConfig = defineConfig([
        * and keeps the central claim of the product true.
        */
       "@next/next/no-html-link-for-pages": "off",
+      /*
+       * Same reasoning, one step further. next/image is pointless here: the
+       * build is `output: "export"` with `images: { unoptimized: true }`, so
+       * there is no optimizer to route through, and the screenshots are
+       * already sized and converted to webp by scripts/capture-shots.mjs.
+       */
+      "@next/next/no-img-element": "off",
     },
   },
 ]);

@@ -433,24 +433,41 @@ Bytes are UTF-8 (`TextEncoder`), not string length.
 42. Findings written by the agent listed with their section id.
 
 ### Front page
-43. One screen at `/`: the claim, a three-step sequence, and a live-styled
-    before/after of three contract lines using the same CSS classes as the real
-    panes, with the real byte count of the agent-side line computed at render
-    (`SampleTransform.tsx`).
-44. Navigation between `/` and `/app` uses plain `<a>` rather than `next/link`,
+43. The hero at `/` pairs the claim with **a real screenshot of the comparison
+    view**, plus one concrete errand ("ask an agent to summarise the liability
+    clauses of a client contract you are not allowed to upload") and the
+    three-step sequence.
+44. **The tool surface, named on the page**: all five tools with their access
+    and one line each, `document.modelContext.registerTool()` spelled out, and
+    a paragraph on the single wrapper that substitutes after the handler
+    returns and on generational registration via `AbortSignal`.
+45. **A "How to try it" panel**, because a reader on a browser without the API
+    sees `webmcp absent · 0 tools` and has no way to know that is expected. It
+    gives both paths: the in-page console on any browser, and Chrome 149+ with
+    `chrome://flags/#enable-webmcp-testing` or ChatGPT's in-app browser for a
+    real agent.
+46. **A second screenshot of the agent view**, full width, from a real run of
+    the sample investigation: the meter, the strip, the record with its
+    decisions, and the masked key.
+47. Four figures from the sample, computed at build time by the real detector
+    (`sample-stats.ts`), so the copy cannot drift from the app: entities
+    detected, withheld outright, addressable sections, bytes the agent may
+    spend. The sample's own byte count is deliberately not one of them — how
+    big the example file happens to be is a fact about the example.
+48. Navigation between `/` and `/app` uses plain `<a>` rather than `next/link`,
     because client-side routing fetches an RSC payload and this origin is not
     allowed to fetch anything.
 
 ### Design system
-45. Palette, type and iconography are the metaphor: flesh = what the agent
+49. Palette, type and iconography are the metaphor: flesh = what the agent
     receives, stone = what it never does, skin = the surface the machine reads
     on. **There is no red anywhere** — a refusal is the policy working.
-46. Three typefaces for three worlds: Instrument Sans (product), Newsreader
+50. Three typefaces for three worlds: Instrument Sans (product), Newsreader
     (your document), IBM Plex Mono (what the machine sees), all self-hosted via
     `@fontsource`.
-47. Four hand-drawn SVG marks (`Avocado.tsx`) with no face, treated as
+51. Four hand-drawn SVG marks (`Avocado.tsx`) with no face, treated as
     standards pictograms; the meter is a real data drawing.
-48. `prefers-reduced-motion` honoured; entity list becomes an overlay below
+52. `prefers-reduced-motion` honoured; entity list becomes an overlay below
     `lg` so it never squeezes the comparison.
 
 ---
@@ -589,7 +606,7 @@ src/app/
   page.tsx              landing (/)
   app/page.tsx          workspace (/app): tabs, banners, both views
   globals.css           palette, type, .mark/.machine/.strip/.paper
-src/components/         18 components, all listed in §7
+src/components/         17 components, all listed in §7
 src/lib/
   types.ts store.ts useStore.ts useSelection.ts useAutoHide.ts
   actions.ts export.ts guards.ts branding.ts format.ts regex-utils.ts
@@ -602,6 +619,8 @@ scripts/
   copy-pdf-worker.mjs   vendors the pdf.js worker to our own origin
   verify-core.ts        37 assertions, npm run verify
   dump-entities.ts      entity table for the sample
+  capture-shots.mjs     the landing page's two screenshots, from a built copy
+public/shots/           those screenshots, webp at 1x
 ```
 
 Roughly 6 500 lines across `src/`.
