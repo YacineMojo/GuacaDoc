@@ -9,10 +9,13 @@ import type { Entity } from "@/lib/types";
 /**
  * The two documents, side by side, scrolled together.
  *
- * They are never stacked: the whole point is comparison, and a comparison you
- * have to scroll between is not one. Because substitution changes the length
- * of the text, the panes are synchronised on scroll ratio rather than on pixel
- * offset, so the same clause stays roughly opposite itself.
+ * Side by side wherever there is room: the whole point is comparison, and a
+ * comparison you have to scroll between is not one. Below lg there is no room,
+ * so they stack at a fixed fraction of the small viewport, which keeps both
+ * documents and both scrollbars on screen at once. Because substitution
+ * changes the length of the text, the panes are synchronised on scroll ratio
+ * rather than on pixel offset, so the same clause stays roughly opposite
+ * itself either way.
  */
 export function SplitDocument({ text, entities }: { text: string; entities: Entity[] }) {
   const leftRef = useRef<HTMLDivElement>(null);
@@ -38,7 +41,7 @@ export function SplitDocument({ text, entities }: { text: string; entities: Enti
   }, []);
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-2 gap-px bg-line">
+    <div className="grid min-h-0 grid-cols-1 gap-px bg-line lg:h-full lg:grid-cols-2">
       <section className="flex min-h-0 flex-col bg-white">
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-line-soft px-4 py-2.5">
           <div className="flex items-center gap-2">
@@ -47,7 +50,7 @@ export function SplitDocument({ text, entities }: { text: string; entities: Enti
           </div>
           <span className="label">click a mark to change it</span>
         </header>
-        <div className="min-h-0 flex-1">
+        <div className="h-[45svh] min-h-0 lg:h-auto lg:flex-1">
           <DocumentPane
             ref={leftRef}
             text={text}
@@ -65,7 +68,7 @@ export function SplitDocument({ text, entities }: { text: string; entities: Enti
           </div>
           <span className="label text-dark-dim">scrolls with your document</span>
         </header>
-        <div className="min-h-0 flex-1">
+        <div className="h-[45svh] min-h-0 lg:h-auto lg:flex-1">
           <AgentPane
             ref={rightRef}
             text={text}

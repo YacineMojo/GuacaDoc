@@ -26,7 +26,18 @@ import { registerAllTools } from "@/lib/webmcp/tools";
 export default function Workspace() {
   const state = useStore();
   const [tab, setTab] = useState("Document");
-  const [entitiesOpen, setEntitiesOpen] = useState(true);
+  /*
+   * The list is a column beside the comparison at lg and above, and a sheet
+   * over it below, so opening it by default on a narrow viewport would hide
+   * the very thing the page exists to show. Read once at mount rather than
+   * kept in sync with the viewport: past that first frame the state belongs
+   * to whoever pressed the button. The export prerenders this page with no
+   * window, and nothing reads this value until a document is loaded, so the
+   * server branch only has to be the desktop default.
+   */
+  const [entitiesOpen, setEntitiesOpen] = useState(
+    () => typeof window === "undefined" || window.matchMedia("(min-width: 64rem)").matches,
+  );
   const [seenAuditSeq, setSeenAuditSeq] = useState(0);
   useDocumentSelection();
 
@@ -59,7 +70,7 @@ export default function Workspace() {
   const unseen = state.audit.filter((event) => event.seq > seenAuditSeq && !event.boundary);
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
+    <div className="flex min-h-svh flex-col lg:h-svh lg:overflow-hidden">
       <Header
         state={state}
         webmcp={webmcp}
@@ -101,7 +112,7 @@ export default function Workspace() {
         </div>
       )}
 
-      <main className="min-h-0 flex-1 overflow-auto">
+      <main className="min-h-0 flex-1 lg:overflow-auto">
         {!state.doc ? (
           <Start audit={state.audit} />
         ) : tab === "Document" ? (
@@ -202,7 +213,7 @@ function DocumentView({
   if (!state.doc) return null;
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex min-h-0 lg:h-full">
       <div className="min-w-0 flex-1">
         <SplitDocument text={state.doc.text} entities={state.entities} />
       </div>
@@ -249,7 +260,7 @@ function AgentView({
   const withheld = state.entities.filter((e) => e.level === "blocked").length;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-px bg-line">
+    <div className="flex min-h-0 flex-col gap-px bg-line lg:h-full">
       <div className="grid shrink-0 grid-cols-1 gap-px bg-line lg:grid-cols-[23rem_1fr]">
         <div className="bg-white">
           <Meter
