@@ -187,15 +187,6 @@ function Start({ audit }: { audit: AuditEvent[] }) {
             abbreviation or a partial mention can slip past it, which is why you review the marks
             before an agent reads anything.
           </li>
-          <li>
-            Substitution shrinks the exposed surface, it does not remove it. An agent asking
-            enough questions can reconstruct the whole document, and nothing here stops it. What it
-            reconstructs is this pseudonymized version, and the record says how much of it left.
-          </li>
-          <li>
-            A pseudonym protects the name, not necessarily the person. Someone with distinctive
-            behaviour can stay recognisable by inference alone.
-          </li>
         </ul>
       </section>
     </div>
