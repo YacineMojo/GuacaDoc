@@ -19,6 +19,20 @@ identify anyone, in a form that does not reconstruct.
 
 ---
 
+## Why WebMCP
+
+A server-side MCP tool has to be given the document before it can answer a
+question about it. That upload is the disclosure this app exists to prevent, so
+the premise dies at step one. Running the tools inside the page is what makes
+three things possible:
+
+- **The file never moves.** Extraction, detection and substitution all happen in
+  the tab.
+- **Consent has somewhere to happen.** A write tool suspends the agent's call on
+  a prompt, in front of the person who owns the document.
+- **The key stays with you.** Tokens are minted in the tab and reversed in the
+  tab. The mapping is never transmitted.
+
 ## The problem
 
 Having an AI analyse a contract, a medical file or an internal document
@@ -33,23 +47,6 @@ the layer in between: something that decides, per answer, what is allowed out.
 
 This project is that layer. It is not tied to contracts or to any document
 type. It is a generic disclosure-control surface for agents.
-
-## Why this needs WebMCP and not a plain MCP server
-
-A server-side MCP tool has to be given the document before it can answer a
-question about it. That upload is the exact disclosure this app exists to
-prevent, so the premise dies at step one. Running the tools inside the page is
-what makes three things possible, and none of them survives the move to a
-server:
-
-- **The file never moves.** Extraction, entity detection and substitution all
-  happen in the tab. No model call, no request, no copy on anyone's disk.
-- **Consent has somewhere to happen.** A write tool suspends the agent's call
-  on a prompt, in front of the person who owns the document. No timeout, no
-  default answer.
-- **The key stays with you.** Tokens are minted here and reversed here. The
-  mapping from `PERSON_01` back to a name is never transmitted, and never
-  exported.
 
 ## Try it in 60 seconds
 
