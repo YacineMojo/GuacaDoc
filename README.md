@@ -12,7 +12,10 @@ flesh, loses the stone, and cannot be turned back into an avocado. That is what
 an agent receives here: the substance of the document, without the parts that
 identify anyone, in a form that does not reconstruct.
 
-Live app: _add your URL here_
+- **Live app:** <https://guacadoc-production.up.railway.app/>
+- **Demo video:** <https://youtu.be/WrWNbH7JaaY>
+
+[![GuacaDoc: an agent reads a contract it is never given](https://img.youtube.com/vi/WrWNbH7JaaY/maxresdefault.jpg)](https://youtu.be/WrWNbH7JaaY)
 
 ---
 
