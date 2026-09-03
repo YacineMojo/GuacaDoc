@@ -90,23 +90,21 @@ export default function Home() {
             <p className="label text-guac-dark">For people who cannot upload the file</p>
 
             <h1 className="mt-4 font-display text-[2.25rem] leading-[1.06] font-semibold tracking-[-0.03em] text-rind sm:text-[2.875rem]">
-              Let an agent analyse a confidential document
-              <span className="text-guac-dark"> without ever giving it the document.</span>
+              Give your agent the taste,
+              <span className="text-guac-dark"> not the recipe.</span>
             </h1>
 
             <p className="mt-6 max-w-lg text-[0.9375rem] leading-relaxed text-text-dim">
-              {PRODUCT_SUMMARY}
+              Let an agent analyse a confidential document without ever giving it the document.
             </p>
 
             {/*
-              One concrete errand. Every abstract capability above is a sentence
-              a reader has to translate before it means anything; this is the
-              translation, done for them.
+              The metaphor above, cashed out. A reader who does not yet trust
+              the claim needs the mechanism in the same breath, not a section
+              later.
             */}
             <p className="mt-5 max-w-lg border-l-[3px] border-guac bg-guac-wash px-4 py-3 text-[0.875rem] leading-relaxed text-rind">
-              <span className="font-semibold">Try this:</span> ask an agent to summarise the
-              liability clauses of a client contract you are not allowed to upload. It answers from
-              the clauses. It never sees who signed them.
+              {PRODUCT_SUMMARY}
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
@@ -154,17 +152,9 @@ export default function Home() {
                 width={1340}
                 height={913}
                 alt="Two panes side by side. On the left the contract as written, with names, an address, a phone number and dates highlighted. On the right the same text as the agent receives it, every one of those values replaced by a token such as [PERSON_01] or [ORG_02], and the bank account shown as [BLOCKED_IBAN] in brown."
-                className="block w-full border-b border-line-soft"
+                className="block w-full"
               />
             </a>
-            <figcaption className="px-4 py-3 text-[0.75rem] leading-relaxed text-text-dim">
-              Your document and the agent&apos;s copy of it, scrolled together.{" "}
-              <span className="text-text">
-                [PERSON_01] is the same person on every page, so the reasoning still holds.
-              </span>{" "}
-              The account number has no token at all: it was never sent, so there is nothing to
-              decode it back from.
-            </figcaption>
           </figure>
         </div>
 
