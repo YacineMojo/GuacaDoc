@@ -52,3 +52,7 @@ SUBJECT.md
 # Demo recording. Hosted on YouTube, not in the history: a 38 MB blob would
 # ride along with every clone forever, and GitHub will not play it inline.
 media/
+
+# Re-created by `next dev` on every run; not part of the project.
+AGENTS.md
+CLAUDE.md
