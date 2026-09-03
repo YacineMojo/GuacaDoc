@@ -48,3 +48,7 @@ shoot.tmp.mjs
 
 # hackathon brief, kept locally rather than republished
 SUBJECT.md
+
+# Demo recording. Hosted on YouTube, not in the history: a 38 MB blob would
+# ride along with every clone forever, and GitHub will not play it inline.
+media/
